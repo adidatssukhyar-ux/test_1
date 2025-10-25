@@ -529,6 +529,23 @@ const sfxBlackhole = document.getElementById('sfxBlackhole');
 let comboCount = 0;
 let lastClickTime = 0;
 
+// ===== Init =====
+function initUI() {
+  powersList.innerHTML = '';
+  state.powers.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'power';
+    row.dataset.id = p.id;
+    row.innerHTML = `<div>${p.name}</div><div>${p.threshold}</div>`;
+    powersList.appendChild(row);
+  });
+  objectsEl.innerHTML = '';
+  addObject('wall');
+  addObject('building');
+}
+initUI();
+updateHUD();
+
 // ===== Input Bindings =====
 clickBtn.addEventListener('click', handleClick);
 document.addEventListener('keydown', (e) => {
@@ -632,6 +649,41 @@ function handleClick() {
 
   autoSceneGrowth();
 }
+
+// ===== HUD & Progress =====
+function updateProgress() {
+  energyVal.textContent = state.energy;
+  const nextPower = state.powers[state.level];
+  if (nextPower) {
+    nextVal.textContent = nextPower.threshold;
+    const progress = Math.min(state.energy / nextPower.threshold, 1);
+    barFill.style.width = (progress * 100) + '%';
+    if (state.energy >= nextPower.threshold) {
+      state.level++;
+      levelVal.textContent = state.level;
+      showBanner(`Unlocked: ${nextPower.name}`);
+    }
+  }
+}
+function updateHUD() {
+  energyVal.textContent = state.energy;
+  levelVal.textContent = state.level;
+}
+
+// ===== Effects =====
+function showBanner(text) {
+  banner.textContent = text;
+  banner.classList.add('show');
+  setTimeout(() => banner.classList.remove('show'), 1500);
+}
+function impactPunch() { pow.textContent = "POW!"; pow.classList.add('show'); setTimeout(()=>pow.classList.remove('show'),300);}
+function impactSuperStrength() { pow.textContent = "BOOM!"; pow.classList.add('show'); setTimeout(()=>pow.classList.remove('show'),300);}
+function impactSupernova() { flash.classList.add('show'); setTimeout(()=>flash.classList.remove('show'),500);}
+function meteorRain() { /* stub effect */ }
+function blackHole() { /* stub effect */ }
+function damageClosest(type, dmg) { /* stub damage */ }
+function destroyRandomBig() { /* stub destroy */ }
+function autoSceneGrowth() { /* stub growth */ }
 
 // ===== Boundless Chaos Effect =====
 function triggerBoundlessChaos() {
