@@ -6,27 +6,13 @@
 <title>Pick Your Power — Cinematic Pixel Forest</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#061226;
-    --accent:#ffd88a;
-    --muted:#b6c7d9;
-  }
+  :root{--bg:#071026;--accent:#ffd88a;--muted:#b6c7d9;}
   html,body{height:100%;margin:0;background:var(--bg);font-family:Inter,system-ui,Roboto,Arial;-webkit-font-smoothing:antialiased;}
   #app{position:relative;height:100vh;overflow:hidden;display:flex;align-items:center;justify-content:center;}
   canvas{display:block;width:100%;height:100%;image-rendering:pixelated;}
-  /* center title */
-  .menu{
-    position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); text-align:center;
-    color:var(--accent); text-shadow:0 12px 40px rgba(0,0,0,0.75); pointer-events:none; z-index:5;
-  }
-  .title{
-    font-family:'Press Start 2P',monospace; font-size:44px; letter-spacing:2px; margin:0;
-    color:var(--accent);
-  }
-  .prompt{
-    margin-top:18px; font-family:'Press Start 2P',monospace; font-size:12px; color:var(--muted);
-    letter-spacing:1px;
-  }
+  .menu{position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); text-align:center; color:var(--accent); text-shadow:0 12px 40px rgba(0,0,0,0.75); pointer-events:none; z-index:5;}
+  .title{font-family:'Press Start 2P',monospace; font-size:44px; letter-spacing:2px; margin:0; color:var(--accent);}
+  .prompt{margin-top:18px; font-family:'Press Start 2P',monospace; font-size:12px; color:var(--muted); letter-spacing:1px;}
   .menu.hidden{opacity:0; transform:translate(-50%,-56%) scale(.98); transition:opacity 260ms, transform 260ms;}
   .hint-bar{position:absolute;left:50%;transform:translateX(-50%);bottom:28px;padding:8px 14px;border-radius:10px;background:rgba(0,0,0,0.28);color:rgba(255,255,255,0.95);font-family:'Press Start 2P',monospace;font-size:11px;z-index:4;display:none}
   .hint-bar.visible{display:block}
@@ -36,23 +22,19 @@
 <body>
   <div id="app" role="main" aria-label="Pick Your Power intro">
     <canvas id="bg"></canvas>
-
     <div class="menu" id="menu" aria-hidden="false">
       <div class="title">PICK YOUR POWER!</div>
       <div class="prompt">PRESS ANYWHERE TO CONTINUE</div>
     </div>
-
-    <div class="hint-bar" id="hint">Move your mouse to pan the scene</div>
+    <div class="hint-bar" id="hint">Move mouse to pan the scene</div>
   </div>
 
 <script>
-/*
- Cinematic pixel forest:
- - Low-res offscreen canvas scaled up for crisp pixel look.
- - Strong perspective, tall centered silhouette like the photo reference.
- - Mouse follow (X and Y) with smooth easing influencing parallax and vertical tilt.
- - Menu is title + "press anywhere". Clicking hides it and reveals hint bar.
- - Single-file, no external images.
+/* Cinematic pixel forest — corrected rendering:
+   - layered, non-green default: sky gradient, distant mountains, Fuji-like peak,
+     multiple tree rows with blossoms and silhouettes, foreground rim, vignette.
+   - strong mouse-follow parallax (X and Y).
+   - low-res offscreen canvas for pixel look, upscaled crisp.
 */
 
 const canvas = document.getElementById('bg');
@@ -61,84 +43,137 @@ const menu = document.getElementById('menu');
 const hint = document.getElementById('hint');
 
 let DPR = Math.min(window.devicePixelRatio || 1, 2);
-
-// Low-res surface controls pixel density & cinematic framing
-let lowW = 480;
-let lowH = 270;
+let lowW = 640, lowH = 360;
 const off = document.createElement('canvas');
 const offCtx = off.getContext('2d', { alpha: false });
 
 function fit(){
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  // choose low-res base keeping cinematic 16:9-ish
-  const aspect = w/h;
-  lowW = Math.max(360, Math.min(720, Math.round(480 * Math.min(1.8, aspect))));
+  const w = window.innerWidth, h = window.innerHeight;
+  const aspect = w / h;
+  lowW = Math.max(360, Math.min(900, Math.round(640 * Math.min(1.6, aspect))));
   lowH = Math.round(lowW * 9 / 16);
-  off.width = lowW;
-  off.height = lowH;
-  canvas.width = lowW * DPR;
-  canvas.height = lowH * DPR;
-  canvas.style.width = w + 'px';
-  canvas.style.height = h + 'px';
+  off.width = lowW; off.height = lowH;
+  canvas.width = lowW * DPR; canvas.height = lowH * DPR;
+  canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
   ctx.setTransform(DPR,0,0,DPR,0,0);
-  ctx.imageSmoothingEnabled = false;
-  offCtx.imageSmoothingEnabled = false;
+  ctx.imageSmoothingEnabled = false; offCtx.imageSmoothingEnabled = false;
 }
 window.addEventListener('resize', fit);
 fit();
 
-/* state */
-const state = { time:0, px:0, py:0, sx:0, sy:0 }; // px/py normalized pointer targets, sx/sy smoothed
+/* pointer */
 const pointer = { x: window.innerWidth/2, y: window.innerHeight/2, active:false };
-
-/* pointer handlers */
 window.addEventListener('mousemove', e => { pointer.x = e.clientX; pointer.y = e.clientY; pointer.active = true; });
-window.addEventListener('touchmove', e => { const t = e.touches[0]; if(t){ pointer.x = t.clientX; pointer.y = t.clientY; pointer.active = true; } }, {passive:true});
-window.addEventListener('touchstart', e => { const t = e.touches[0]; if(t){ pointer.x = t.clientX; pointer.y = t.clientY; pointer.active = true; } }, {passive:true});
+window.addEventListener('touchmove', e => { const t=e.touches[0]; if(t){ pointer.x=t.clientX; pointer.y=t.clientY; pointer.active=true; } }, {passive:true});
+window.addEventListener('touchstart', e => { const t=e.touches[0]; if(t){ pointer.x=t.clientX; pointer.y=t.clientY; pointer.active=true; } }, {passive:true});
 
-/* small helpers */
+/* state for smoothing */
+const state = { time:0, tx:0, ty:0, ox:0, oy:0 };
+
+/* helpers */
 function lerp(a,b,t){ return a + (b-a) * t; }
 function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
 function rand(min,max){ return min + Math.random()*(max-min); }
 
-/* draw scene on low-res offscreen */
-function drawScene(c, w, h, st){
-  // cinematic vertical gradient sky (dawn)
+/* Drawing primitives (pixel-friendly) */
+function clear(c,w,h){
+  c.fillStyle = '#0f1230';
+  c.fillRect(0,0,w,h);
+}
+
+/* sky gradient with warm sunrise */
+function drawSky(c,w,h){
   const g = c.createLinearGradient(0,0,0,h);
-  g.addColorStop(0, '#fff3e6');
+  g.addColorStop(0, '#fff4e8');
   g.addColorStop(0.18, '#ffdfe8');
-  g.addColorStop(0.42, '#ffd6f0');
-  g.addColorStop(1, '#6d98d6');
+  g.addColorStop(0.45, '#ffd0ef');
+  g.addColorStop(1, '#7aa0d6');
   c.fillStyle = g; c.fillRect(0,0,w,h);
+}
 
-  // tall fog shafts to read like photo lighting
-  c.globalAlpha = 0.12;
-  for(let i=0;i<3;i++){
-    const x = Math.round((i/w)*w*0.2 + (Math.sin(st.time*0.12 + i*2.1) * w*0.02));
-    c.fillStyle = 'rgba(255,255,255,0.06)';
-    c.fillRect(0, Math.round(h*0.12 + i*18), w, Math.round(h*0.08));
+/* distant layered mountains */
+function drawLayeredMountains(c,w,h,offsetX,offsetY){
+  drawMountain(c,w,h, Math.round(h*0.46), '#dbeefc', 0.16, offsetX*0.02, offsetY*0.01);
+  drawMountain(c,w,h, Math.round(h*0.56), '#9fc0ea', 0.28, offsetX*0.05, offsetY*0.02);
+}
+
+/* single mountain silhouette function */
+function drawMountain(c,w,h,baseY,color,rough,ox,oy){
+  c.save(); c.translate(ox, oy);
+  c.fillStyle = color; c.beginPath();
+  c.moveTo(-40, h);
+  const peaks = 8;
+  for(let i=0;i<=peaks;i++){
+    const px = Math.round((i/peaks)*(w+80) - 40);
+    const noise = Math.sin(i*1.1 + performance.now()*0.00009) * 12 * rough;
+    const py = Math.round(baseY - Math.abs(Math.cos(i*0.7)) * (140 * rough) + noise);
+    c.lineTo(px, py);
   }
-  c.globalAlpha = 1;
+  c.lineTo(w+40, h); c.closePath(); c.fill(); c.restore();
+}
 
-  // deep layered mountains further back: subtle silhouettes
-  drawMountain(c, w, h, Math.round(h*0.42), 0.16, '#cfe3f8', st.sx*0.02, st.sy*0.01);
-  drawMountain(c, w, h, Math.round(h*0.52), 0.32, '#95b6e1', st.sx*0.05, st.sy*0.02);
+/* Fuji-like central peak */
+function drawPeak(c,w,h,offsetX,offsetY){
+  c.save(); c.translate(offsetX, offsetY);
+  const centerX = Math.round(w/2 + offsetX*6);
+  const peakY = Math.round(h*0.68 - 240);
+  const left = centerX - 300, right = centerX + 300;
+  const gg = c.createLinearGradient(centerX, peakY, centerX, Math.round(h*0.68));
+  gg.addColorStop(0, '#295f97'); gg.addColorStop(1, '#123e63');
+  c.fillStyle = gg; c.beginPath(); c.moveTo(centerX, peakY); c.lineTo(right, Math.round(h*0.68)); c.lineTo(left, Math.round(h*0.68)); c.closePath(); c.fill();
+  // snow cap
+  c.fillStyle = '#ffffff'; c.beginPath();
+  const capBase = peakY + 72; const capW = 240;
+  c.moveTo(centerX - capW/2, capBase);
+  for(let i=0;i<=10;i++){
+    const t=i/10; const x = centerX - capW/2 + t*capW; const y = capBase - Math.sin(t*Math.PI*2)*18*(0.6+Math.random()*0.4);
+    c.lineTo(Math.round(x), Math.round(y));
+  }
+  c.lineTo(centerX + capW/2, capBase); c.lineTo(centerX, peakY+12); c.closePath(); c.fill();
+  c.restore();
+}
 
-  // towering centered silhouette (cinematic peak)
-  drawCinematicPeak(c, w, h, Math.round(h*0.68), st.sx*0.14, st.sy*0.06);
+/* tree bands: repeated blocky trees for pixel-art aesthetic */
+function drawTreeBand(c,w,baseY,count,spread,depthInfluence, offsetX, offsetY, blossoms){
+  c.save();
+  // parallax offset based on pointer offsets
+  const px = offsetX * depthInfluence * 18;
+  const py = offsetY * depthInfluence * 8;
+  c.translate(px, py);
+  for(let i=0;i<count;i++){
+    const t = i/(count-1);
+    const jitter = Math.sin(state.time*0.6 + i*1.2) * 6;
+    const x = Math.round(t * w + jitter + (Math.random()-0.5)*10);
+    const hgt = Math.round(48 + Math.random()*100*spread);
+    drawBlockTree(c, x, baseY + Math.round((Math.random()-0.5)*6), hgt, blossoms && Math.random() > 0.5);
+  }
+  c.restore();
+}
 
-  // mid trees band
-  drawTreeBand(c, w, h, Math.round(h*0.78), 12, 0.5, st);
+function drawBlockTree(c,x,baseY,hgt,blossoms){
+  c.save(); c.translate(x, baseY);
+  // trunk
+  c.fillStyle = '#3a291e'; c.fillRect(-2, 0, 4, Math.round(hgt*0.26));
+  // canopy layers (blocks)
+  const layers = 4; const baseW = Math.round(hgt*0.78);
+  for(let i=0;i<layers;i++){
+    const w = Math.max(8, Math.round(baseW - i*(baseW*0.2)));
+    const y = -Math.round(hgt*0.14) - i * Math.round(hgt*0.22);
+    const shade = i===0 ? '#2f6b42' : shadeColor('#2f6b42', -6*i);
+    c.fillStyle = shade; c.fillRect(-Math.round(w/2), y, w, Math.round(hgt*0.22));
+  }
+  if(blossoms){
+    for(let p=0;p<6;p++){
+      const bx = Math.round((Math.random()-0.5)*(baseW*0.6));
+      const by = Math.round(-Math.random()*hgt*0.6 - 8);
+      c.fillStyle = p%2===0 ? '#ffc6e1' : '#ffdbe9'; c.fillRect(bx, by, 2, 2);
+    }
+  }
+  c.restore();
+}
 
-  // near trees (big, blocky, with blossoms)
-  drawTreeBand(c, w, h, Math.round(h*0.88), 8, 0.9, st, true);
-
-  // foreground ground rim to anchor
-  c.fillStyle = '#061226';
-  c.fillRect(0, Math.round(h*0.92), w, h - Math.round(h*0.92));
-
-  // subtle vignette for mood
+/* vignette */
+function drawVignette(c,w,h){
   c.globalCompositeOperation = 'multiply';
   const vg = c.createLinearGradient(0,0,0,h);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
@@ -148,142 +183,70 @@ function drawScene(c, w, h, st){
   c.globalCompositeOperation = 'source-over';
 }
 
-/* mountain helper */
-function drawMountain(c,w,h,baseY,rough,color,ox,oy){
-  c.save(); c.translate(ox, oy);
-  c.fillStyle = color; c.beginPath();
-  c.moveTo(-40, h);
-  const peaks = 7;
-  for(let i=0;i<=peaks;i++){
-    const px = Math.round((i/peaks) * (w + 80) - 40);
-    const noise = Math.sin(i*0.9 + performance.now()*0.00009) * 12 * rough;
-    const py = Math.round(baseY - Math.abs(Math.cos(i*0.7)) * (140 * rough) + noise);
-    c.lineTo(px, py);
-  }
-  c.lineTo(w+40, h); c.closePath(); c.fill(); c.restore();
-}
+/* main scene composer */
+function composeScene(c,w,h, offsetX, offsetY, t){
+  drawSky(c,w,h);
+  // faint cloud/mist bands
+  c.globalAlpha = 0.14;
+  c.fillStyle = '#ffffff';
+  c.fillRect(0, Math.round(h*0.12), w, Math.round(h*0.08));
+  c.fillRect(0, Math.round(h*0.18), w, Math.round(h*0.06));
+  c.globalAlpha = 1;
 
-/* cinematic peak (big, centered, tall) */
-function drawCinematicPeak(c,w,h,baseY,ox,oy){
-  c.save(); c.translate(ox, oy);
-  const centerX = Math.round(w/2 + ox*8);
-  const peakY = Math.round(baseY - 260);
-  const leftX = centerX - 280;
-  const rightX = centerX + 280;
-  // main cone gradient
-  const gg = c.createLinearGradient(centerX, peakY, centerX, baseY);
-  gg.addColorStop(0, '#2b6094'); gg.addColorStop(1, '#13486f');
-  c.fillStyle = gg;
-  c.beginPath(); c.moveTo(centerX, peakY); c.lineTo(rightX, baseY); c.lineTo(leftX, baseY); c.closePath(); c.fill();
-  // snowy cap jagged
-  c.fillStyle = '#ffffff'; c.beginPath();
-  const capH = peakY + 76;
-  const capW = 240;
-  c.moveTo(centerX - capW/2, capH);
-  for(let i=0;i<=10;i++){
-    const t = i/10; const x = centerX - capW/2 + t*capW;
-    const y = capH - Math.sin(t*Math.PI*2) * 18 * (0.6 + Math.random()*0.4);
-    c.lineTo(Math.round(x), Math.round(y));
-  }
-  c.lineTo(centerX + capW/2, capH); c.lineTo(centerX, peakY+10); c.closePath(); c.fill();
-  c.restore();
-}
+  drawLayeredMountains(c,w,h, offsetX, offsetY);
+  drawPeak(c,w,h, offsetX, offsetY);
 
-/* tree band: repeated stylized trees (pixel blocks) */
-function drawTreeBand(c,w,baseY,count,spread,depthState, st, blossoms=false){
-  c.save();
-  // pointer influence: stronger on near bands
-  const pxNorm = (pointer.x / Math.max(window.innerWidth,1) - 0.5) * 2;
-  const pyNorm = (pointer.y / Math.max(window.innerHeight,1) - 0.5) * 2;
-  const ox = pxNorm * depthState * 28;
-  const oy = pyNorm * depthState * 10;
-  c.translate(ox, oy);
-  for(let i=0;i<count;i++){
-    const t = i/(count-1);
-    const jitter = Math.sin(st.time*0.6 + i*1.1) * 8;
-    const x = Math.round(t * w + jitter);
-    const hgt = Math.round(48 + Math.random()*96 * spread);
-    drawBlockTree(c, x + Math.round((Math.random()-0.5)*16), baseY, hgt, blossoms && Math.random() > 0.5);
-  }
-  c.restore();
-}
+  // multiple tree bands with stronger parallax for nearer bands
+  drawTreeBand(c,w, Math.round(h*0.74), 12, 0.36, 0.26, offsetX, offsetY, false); // mid
+  drawTreeBand(c,w, Math.round(h*0.82), 10, 0.6, 0.6, offsetX, offsetY, true); // near
+  drawTreeBand(c,w, Math.round(h*0.9), 8, 0.9, 1.0, offsetX, offsetY, true); // foreground
 
-/* blocky pixel tree to maintain crisp look when upscaled */
-function drawBlockTree(c,x,baseY,hgt,blossoms){
-  c.save(); c.translate(x, baseY);
-  // trunk (thin)
-  c.fillStyle = '#2f1f16'; c.fillRect(-2, 0, 4, Math.round(hgt*0.26));
-  // canopy as stacked rectangles
-  const layers = 4; const baseW = Math.round(hgt*0.8);
-  for(let i=0;i<layers;i++){
-    const w = Math.max(8, Math.round(baseW - i*(baseW*0.2)));
-    const y = -Math.round(hgt*0.16) - i * Math.round(hgt*0.24);
-    const shade = i===0 ? '#2c6b45' : shadeColor('#2c6b45', -6*i);
-    c.fillStyle = shade; c.fillRect(-Math.round(w/2), y, w, Math.round(hgt*0.22));
-  }
-  // blossoms (tiny squares)
-  if(blossoms){
-    for(let p=0;p<6;p++){
-      const bx = Math.round((Math.random()-0.5)*(baseW*0.6));
-      const by = Math.round(-Math.random()*hgt*0.6 - 8);
-      c.fillStyle = (p%2===0) ? '#ffc6e1' : '#ffdbe9';
-      c.fillRect(bx, by, 2, 2);
-    }
-  }
-  c.restore();
-}
-
-/* color shade helper */
-function shadeColor(hex, percent){
-  const f = hex.replace('#','');
-  const R = parseInt(f.substring(0,2),16);
-  const G = parseInt(f.substring(2,4),16);
-  const B = parseInt(f.substring(4,6),16);
-  const t = percent/100;
-  const newR = Math.round(R + ((t>0?255:0) - R) * Math.abs(t));
-  const newG = Math.round(G + ((t>0?255:0) - G) * Math.abs(t));
-  const newB = Math.round(B + ((t>0?255:0) - B) * Math.abs(t));
-  return `rgb(${clamp(newR,0,255)},${clamp(newG,0,255)},${clamp(newB,0,255)})`;
+  // ground rim
+  c.fillStyle = '#061226'; c.fillRect(0, Math.round(h*0.94), w, h - Math.round(h*0.94));
+  drawVignette(c,w,h);
 }
 
 /* animation loop */
 let last = performance.now();
-function frame(now){
+function loop(now){
   const dt = Math.min((now - last)/1000, 0.033);
   last = now;
   state.time += dt;
 
-  // normalized pointer -1..1
+  // pointer normalized -1..1
   const nx = (pointer.x / Math.max(window.innerWidth,1) - 0.5) * 2;
   const ny = (pointer.y / Math.max(window.innerHeight,1) - 0.5) * 2;
 
-  // strong mouse-follow targets for cinematic feel
-  state.px = clamp(nx * 1.0, -1, 1);
-  state.py = clamp(ny * 0.9, -1, 1);
+  // targets: amplify X and Y slightly
+  state.tx = clamp(nx * 1.0, -1, 1);
+  state.ty = clamp(ny * 0.9, -1, 1);
 
-  // smooth interpolation
-  state.sx = lerp(state.sx || 0, state.px, Math.min(1, 6*dt));
-  state.sy = lerp(state.sy || 0, state.py, Math.min(1, 6*dt));
+  // smooth
+  state.ox = lerp(state.ox || 0, state.tx, Math.min(1, 6*dt));
+  state.oy = lerp(state.oy || 0, state.ty, Math.min(1, 6*dt));
 
-  // draw to low-res offscreen using smoothed offsets
+  // map offsets to pixel-space proportions
+  const offsetX = state.ox * 0.8; // horizontal parallax strength
+  const offsetY = state.oy * 0.6; // vertical parallax strength
+
+  // draw to offscreen
   offCtx.clearRect(0,0,off.width,off.height);
-  drawScene(offCtx, off.width, off.height, { time: state.time, sx: state.sx, sy: state.sy });
+  composeScene(offCtx, off.width, off.height, offsetX * off.width * 0.04, offsetY * off.height * 0.03, state.time);
 
-  // upscale to visible canvas (pixelated)
+  // upscale to main canvas
   ctx.clearRect(0,0,canvas.width/DPR, canvas.height/DPR);
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(off, 0, 0, off.width, off.height, 0, 0, canvas.width/DPR, canvas.height/DPR);
 
-  requestAnimationFrame(frame);
+  requestAnimationFrame(loop);
 }
-requestAnimationFrame(frame);
+requestAnimationFrame(loop);
 
-/* menu interaction */
+/* menu click to continue */
 function continueAction(){
   if(!menu.classList.contains('hidden')){
     menu.classList.add('hidden');
     hint.classList.add('visible');
-    // hide hint after a few seconds
     setTimeout(()=> hint.classList.remove('visible'), 4200);
   }
 }
@@ -291,7 +254,7 @@ window.addEventListener('pointerdown', continueAction, {passive:true});
 window.addEventListener('touchstart', continueAction, {passive:true});
 
 /* expose pointer for debugging */
-window._cinematicPointer = pointer;
+window._pixelPointer = pointer;
 </script>
 </body>
 </html>
