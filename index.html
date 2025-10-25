@@ -2,136 +2,411 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Punch Evolution</title>
+  <title>Punch Evolution — Your Script Refactor</title>
   <style>
     body {
-      margin: 0;
-      font-family: sans-serif;
-      background: #111;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
+      margin: 0; background: #0f0f14; color: #eaeaea; font-family: Inter, system-ui, sans-serif;
+      display: grid; place-items: center; min-height: 100vh;
     }
-    h1 { margin-bottom: 20px; }
-    #energyBar {
-      width: 300px;
-      height: 30px;
-      background: #333;
-      border-radius: 8px;
-      overflow: hidden;
-      margin-bottom: 20px;
+    .app {
+      width: 900px; max-width: 92vw; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
     }
-    #energyFill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #1e90ff, #00ff99);
-      transition: width 0.2s;
+    .panel {
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px; padding: 16px; backdrop-filter: blur(8px);
     }
-    #wall {
-      width: 200px;
-      height: 200px;
-      background: gray;
-      border: 5px solid #555;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      margin-top: 20px;
-      transition: transform 0.1s;
+    h2 { margin: 0 0 12px; font-size: 1rem; letter-spacing: 0.06em; text-transform: uppercase; color: #9bd; }
+
+    /* HUD */
+    .hud { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+    .stats { display: grid; gap: 8px; }
+    .stat { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+    .bar { height: 24px; border-radius: 8px; background: #1a1f26; overflow: hidden; position: relative; }
+    #barFill { height: 100%; width: 0%; background: linear-gradient(90deg,#3ea6ff,#4ade80); transition: width 0.2s ease; }
+    #barLabel { position: absolute; inset: 0; display: grid; place-items: center; font-size: 12px; color: #cfe7ff; }
+
+    /* Powers list */
+    #powersList { display: grid; gap: 6px; }
+    .power { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 8px; border-radius: 8px;
+      border: 1px dashed rgba(255,255,255,0.12); color: #cfd8dc;}
+    .power.unlocked { border-style: solid; border-color: #4ade80; color: #eafff3; background: rgba(74,222,128,0.08); }
+
+    /* Scene */
+    .scene { position: relative; height: 320px; display: grid; grid-template-rows: auto 1fr auto; gap: 12px; }
+    #clickBtn {
+      height: 56px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.18);
+      background: radial-gradient(circle at 40% 40%, #ff6b6b, #b83232);
+      color: white; font-weight: 700; letter-spacing: 0.06em; cursor: pointer;
+      box-shadow: 0 0 24px rgba(255,107,107,0.35); transition: transform 0.06s;
     }
-    .shake { animation: shake 0.3s; }
+    #clickBtn:active { transform: scale(0.97); }
+    #objects { display: flex; gap: 12px; align-items: end; justify-content: center; height: 100%; }
+
+    .obj {
+      position: relative; display: grid; place-items: center; width: 120px; height: 120px; color: #111;
+      border-radius: 8px; border: 3px solid #39424a; background: #c6c6c6; font-weight: 800;
+      transition: transform 0.12s ease, filter 0.12s ease, opacity 0.28s ease;
+    }
+    .obj.wall { width: 110px; height: 110px; background: #b5b5b5; }
+    .obj.building { width: 130px; height: 160px; background: #a0b8c8; }
+    .obj.skyscraper { width: 140px; height: 200px; background: #7aa2c6; }
+
+    .obj .crack { position: absolute; inset: 0; background:
+      repeating-linear-gradient(90deg, transparent 0 20px, rgba(0,0,0,0.08) 20px 21px); opacity: 0.4; }
+
+    .obj.hit { filter: brightness(1.2) contrast(1.05); transform: translateY(-3px); }
+    .obj.destroy { opacity: 0; transform: scale(0.9) translateY(8px); pointer-events: none; }
+
+    /* FX layers */
+    #banner {
+      position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+      padding: 6px 10px; border-radius: 8px; background: rgba(62,166,255,0.18); color: #cfe7ff;
+      border: 1px solid rgba(62,166,255,0.35); font-weight: 700; opacity: 0; transition: opacity 0.2s, transform 0.2s;
+    }
+    #banner.show { opacity: 1; transform: translateX(-50%) translateY(4px); }
+
+    #pow {
+      position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); font-weight: 900;
+      color: #ffd1d1; text-shadow: 0 2px 12px rgba(255,120,120,0.5); opacity: 0; transition: opacity 0.15s;
+    }
+    #pow.show { opacity: 1; }
+
+    #flash {
+      position: absolute; inset: -8px; border-radius: 12px; background: white; opacity: 0; pointer-events: none;
+      transition: opacity 0.12s ease;
+    }
+    #flash.show { opacity: 0.65; }
+
+    /* Screen shake container */
+    .shake { animation: shake 0.35s ease; }
     @keyframes shake {
-      0% { transform: translate(2px, 2px); }
-      25% { transform: translate(-2px, -2px); }
-      50% { transform: translate(2px, -2px); }
-      75% { transform: translate(-2px, 2px); }
-      100% { transform: translate(0,0); }
+      0%,100% { transform: translate(0,0); }
+      20% { transform: translate(-4px, 2px); }
+      40% { transform: translate(3px, -2px); }
+      60% { transform: translate(-3px, 3px); }
+      80% { transform: translate(2px, -3px); }
     }
-    .flash { animation: flash 0.5s; }
-    @keyframes flash {
-      0% { background: white; }
-      100% { background: gray; }
+
+    /* Wall break variants */
+    .crumble { animation: crumble 0.5s ease forwards; }
+    @keyframes crumble {
+      0% { transform: translateY(0); opacity: 1; }
+      100% { transform: translateY(12px) scale(0.9); opacity: 0; }
     }
-    .explode { animation: explode 0.6s; }
+    .crackFX { box-shadow: inset 0 0 0 9999px rgba(255,255,255,0.1); }
+    .shockwave { animation: shockwave 0.5s ease; }
+    @keyframes shockwave {
+      0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.6); }
+      100% { box-shadow: 0 0 0 24px rgba(255,255,255,0); }
+    }
+    .explode { animation: explode 0.6s ease forwards; }
     @keyframes explode {
-      0% { transform: scale(1); opacity: 1; }
-      100% { transform: scale(2); opacity: 0; }
+      0% { transform: scale(1); filter: brightness(1); }
+      100% { transform: scale(1.5); filter: brightness(1.6); opacity: 0; }
     }
-    .obliterate { animation: obliterate 0.8s; }
+    .obliterate { animation: obliterate 0.7s ease forwards; }
     @keyframes obliterate {
-      0% { background: gray; opacity: 1; }
-      100% { background: black; opacity: 0; }
+      0% { transform: scale(1); opacity: 1; filter: saturate(1); }
+      100% { transform: scale(1.2); opacity: 0; filter: saturate(0); }
+    }
+
+    /* Top HUD label */
+    .topbar {
+      position: fixed; top: 10px; left: 50%; transform: translateX(-50%); font-size: 12px; color: #9ab;
     }
   </style>
 </head>
 <body>
-  <h1>Punch Evolution</h1>
-  <div id="energyBar"><div id="energyFill"></div></div>
-  <div id="level">Level: Average</div>
-  <div id="wall">HP: 50</div>
+  <div class="topbar">Energy: <span id="energyTop">0</span></div>
+
+  <div class="app">
+    <div class="panel hud">
+      <div class="stats">
+        <h2>Stats</h2>
+        <div class="stat"><span>Energy</span><span id="energyVal">0</span></div>
+        <div class="stat"><span>Level</span><span id="levelVal">0</span></div>
+        <div class="stat"><span>Next unlock</span><span id="nextVal">100</span></div>
+        <div class="bar">
+          <div id="barFill"></div>
+          <div id="barLabel">0 / 100</div>
+        </div>
+      </div>
+
+      <div>
+        <h2>Powers</h2>
+        <div id="powersList"></div>
+      </div>
+    </div>
+
+    <div class="panel scene">
+      <div id="banner">Welcome</div>
+      <div id="flash"></div>
+      <div id="pow">POW!</div>
+
+      <button id="clickBtn" title="Left click or E">Punch</button>
+      <div id="objects"></div>
+      <div style="font-size:12px;color:#aab;">Controls: Left Click or E</div>
+    </div>
+  </div>
 
   <script>
-    let energy = 0;
-    let maxEnergy = 100;
-    let level = 0;
-    const levels = ["Average","Boxer","Superhuman","Superhero","One Punch Man"];
-    const wall = document.getElementById('wall');
-    let wallHP = 50;
+    // ===== Game State =====
+    const state = {
+      energy: 0,
+      level: 0,
+      nextUnlock: 100,
+      // Rewritten powers to your 5 levels
+      powers: [
+        { id: 1, name: "Average", threshold: 100, desc: "Basic punch.", fx: "pow" },
+        { id: 2, name: "Boxer", threshold: 200, desc: "Stronger impact, cracks walls.", fx: "shake" },
+        { id: 3, name: "Superhuman", threshold: 300, desc: "Shockwave punches.", fx: "flash" },
+        { id: 4, name: "Superhero", threshold: 400, desc: "Explosive hits.", fx: "meteor" },
+        { id: 5, name: "One Punch Man", threshold: 500, desc: "Instant obliteration.", fx: "blackhole" }
+      ],
+      unlockedPowerIds: []
+    };
 
-    const energyFill = document.getElementById('energyFill');
-    const levelDiv = document.getElementById('level');
+    // ===== DOM refs =====
+    const clickBtn   = document.getElementById('clickBtn');
+    const energyVal  = document.getElementById('energyVal');
+    const levelVal   = document.getElementById('levelVal');
+    const nextVal    = document.getElementById('nextVal');
+    const energyTop  = document.getElementById('energyTop');
+    const barFill    = document.getElementById('barFill');
+    const barLabel   = document.getElementById('barLabel');
+    const banner     = document.getElementById('banner');
+    const flash      = document.getElementById('flash');
+    const pow        = document.getElementById('pow');
+    const powersList = document.getElementById('powersList');
+    const objectsEl  = document.getElementById('objects');
 
-    function punch() {
-      energy += 2;
-      if (energy >= maxEnergy && level < levels.length-1) {
-        energy = 0;
-        level++;
-        maxEnergy = 100; // each tier requires 100 energy
-        levelDiv.textContent = "Level: " + levels[level];
+    // ===== Init =====
+    function initUI() {
+      // Populate powers list
+      powersList.innerHTML = '';
+      state.powers.forEach(p => {
+        const row = document.createElement('div');
+        row.className = 'power';
+        row.dataset.id = p.id;
+        row.innerHTML = `
+          <div>${p.name}</div>
+          <div>${p.threshold}</div>
+        `;
+        powersList.appendChild(row);
+      });
+
+      // Populate scene objects
+      objectsEl.innerHTML = '';
+      addObject('wall');
+      addObject('building');
+    }
+
+    function addObject(type) {
+      const obj = document.createElement('div');
+      obj.className = `obj ${type}`;
+      obj.dataset.type = type;
+      obj.dataset.hp = type === 'wall' ? 10 : type === 'building' ? 20 : 30; // a bit beefier for fun
+      obj.innerHTML = `<div class="crack"></div><div class="label"></div>`;
+      obj.querySelector('.label')?.replaceWith(document.createTextNode(type.toUpperCase()));
+      objectsEl.appendChild(obj);
+    }
+
+    initUI();
+    updateHUD();
+
+    // ===== Main Click Loop =====
+    clickBtn.addEventListener('click', () => {
+      // Gain energy (+2 per your brainstorm)
+      state.energy += 2;
+      updateProgress();
+
+      // Impact FX (scaled by level name mapping)
+      const lvl = state.level;
+      if (lvl === 0) {
+        impactPunch();
+        damageClosest('wall', 2);
+      } else if (lvl === 1) {
+        impactSuperStrength();
+        damageClosest('wall', 4);
+      } else if (lvl === 2) {
+        impactSuperhuman();
+        damageClosest('building', 6);
+      } else if (lvl === 3) {
+        impactSuperhero();
+        damageClosest('building', 10);
+      } else if (lvl >= 4) {
+        impactOnePunch();
+        destroyRandomBig(); // dramatic finishers
       }
-      updateEnergyBar();
-      damageWall();
-    }
 
-    function updateEnergyBar() {
-      const progress = (energy/maxEnergy*100);
-      energyFill.style.width = progress + "%";
-    }
+      // Auto-spawn new structures as we progress
+      autoSceneGrowth();
+    });
 
-    function damageWall() {
-      let dmg = (level+1)*2; // stronger at higher levels
-      wallHP -= dmg;
-      if (wallHP <= 0) {
-        triggerWallBreak();
-        wallHP = 50 + level*20; // respawn wall with more HP
+    // ===== HUD & Progress =====
+    function updateProgress() {
+      energyVal.textContent = state.energy;
+      energyTop.textContent = state.energy;
+
+      const progressInTier = state.energy % 100;
+      const target = ((state.level + 1) * 100);
+      barFill.style.width = progressInTier + '%';
+      barLabel.textContent = `${progressInTier} / 100`;
+
+      if (state.energy >= target) {
+        levelUp();
       }
-      wall.textContent = "HP: " + wallHP;
+      nextVal.textContent = ((state.level + 1) * 100);
     }
 
-    function triggerWallBreak() {
-      switch(level) {
-        case 0: wall.classList.add('shake'); break;
-        case 1: wall.classList.add('flash'); break;
-        case 2: wall.classList.add('explode'); break;
-        case 3: wall.classList.add('flash','explode'); break;
-        case 4: wall.classList.add('obliterate'); 
-                document.body.style.background="white"; 
-                setTimeout(()=>document.body.style.background="#111",200); 
-                break;
+    function updateHUD() {
+      energyVal.textContent = state.energy;
+      levelVal.textContent = state.level;
+      energyTop.textContent = state.energy;
+      nextVal.textContent = ((state.level + 1) * 100);
+      const progressInTier = state.energy % 100;
+      barFill.style.width = progressInTier + '%';
+      barLabel.textContent = `${progressInTier} / 100`;
+      refreshPowersList();
+    }
+
+    // ===== Level Up =====
+    function levelUp() {
+      state.level += 1;
+      levelVal.textContent = state.level;
+
+      // Unlock power at exact threshold
+      const power = state.powers.find(p => p.threshold === state.level * 100);
+      if (power && !state.unlockedPowerIds.includes(power.id)) {
+        state.unlockedPowerIds.push(power.id);
+        showBanner(`Unlocked: ${power.name}`);
+      } else {
+        showBanner(`LEVEL ${state.level}`);
       }
-      setTimeout(()=> {
-        wall.className = ""; // reset classes
-        wall.id="wall"; // keep ID
-      }, 800);
+      refreshPowersList();
+
+      // New objects at certain levels
+      if (state.level === 1) addObject('building');
+      if (state.level === 2) addObject('skyscraper');
     }
 
-    document.addEventListener('click', punch);
-    document.addEventListener('keydown', e => { if (e.key.toLowerCase()==="e") punch(); });
+    function refreshPowersList() {
+      [...powersList.children].forEach(row => {
+        const id = Number(row.dataset.id);
+        if (state.unlockedPowerIds.includes(id)) {
+          row.classList.add('unlocked');
+        } else {
+          row.classList.remove('unlocked');
+        }
+      });
+    }
 
-    wall.textContent = "HP: " + wallHP;
+    // ===== Effects =====
+    function showBanner(text) {
+      banner.textContent = text;
+      banner.classList.remove('show');
+      void banner.offsetWidth; // reflow
+      banner.classList.add('show');
+      setTimeout(() => banner.classList.remove('show'), 800);
+    }
+
+    function impactPunch() {
+      // "POW!" text
+      pow.textContent = 'POW!';
+      pow.classList.remove('show');
+      void pow.offsetWidth;
+      pow.classList.add('show');
+      setTimeout(() => pow.classList.remove('show'), 250);
+    }
+
+    function impactSuperStrength() {
+      impactPunch();
+      // shake container
+      const scenePanel = document.querySelector('.scene');
+      scenePanel.classList.remove('shake');
+      void scenePanel.offsetWidth;
+      scenePanel.classList.add('shake');
+    }
+
+    function impactSuperhuman() {
+      // shockwave style flash
+      flash.classList.remove('show');
+      void flash.offsetWidth;
+      flash.classList.add('show');
+      setTimeout(() => flash.classList.remove('show'), 150);
+      showBanner('Superhuman Shockwave');
+    }
+
+    function impactSuperhero() {
+      // flash + explode hint
+      impactSuperhuman();
+      showBanner('Superhero Impact');
+    }
+
+    function impactOnePunch() {
+      // whiteout and big banner
+      flash.classList.add('show');
+      document.body.style.background = '#ffffff';
+      setTimeout(() => {
+        flash.classList.remove('show');
+        document.body.style.background = '#0f0f14';
+      }, 180);
+      showBanner('ONE PUNCH!');
+    }
+
+    // ===== Scene Damage / Destruction =====
+    function damageClosest(type, dmg = 1) {
+      const candidates = [...objectsEl.querySelectorAll(`.obj.${type}:not(.destroy)`)];
+      if (!candidates.length) return;
+      const target = candidates[0];
+      const hp = Math.max(0, Number(target.dataset.hp) - dmg);
+      target.dataset.hp = hp;
+      target.classList.add('hit');
+
+      // add per-level visuals on hit
+      if (state.level === 1) target.classList.add('crackFX');
+      if (state.level === 2) target.classList.add('shockwave');
+
+      setTimeout(() => target.classList.remove('hit'), 200);
+
+      if (hp <= 0) {
+        // wall-breaking variant by level
+        if (state.level === 0) target.classList.add('crumble');
+        else if (state.level === 1) target.classList.add('crackFX','crumble');
+        else if (state.level === 2) target.classList.add('explode');
+        else if (state.level === 3) target.classList.add('explode','shockwave');
+        else target.classList.add('obliterate');
+
+        target.classList.add('destroy');
+        setTimeout(() => target.remove(), 560);
+      }
+    }
+
+    function destroyRandomBig() {
+      const bigs = [...objectsEl.querySelectorAll('.obj.skyscraper, .obj.building')].filter(el => !el.classList.contains('destroy'));
+      if (!bigs.length) return;
+      const target = bigs[Math.floor(Math.random() * bigs.length)];
+      target.classList.add('obliterate','destroy');
+      setTimeout(() => target.remove(), 560);
+    }
+
+    function autoSceneGrowth() {
+      const countWalls = objectsEl.querySelectorAll('.obj.wall').length;
+      const countBuildings = objectsEl.querySelectorAll('.obj.building').length;
+      const countSkyscrapers = objectsEl.querySelectorAll('.obj.skyscraper').length;
+
+      // keep some objects around for satisfying hits
+      if (countWalls < 2) addObject('wall');
+      if (state.level >= 1 && countBuildings < 2) addObject('building');
+      if (state.level >= 2 && countSkyscrapers < 1) addObject('skyscraper');
+    }
+
+    // ===== Keyboard shortcuts (E key + Space optional) =====
+    document.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      if (k === 'e') { e.preventDefault(); clickBtn.click(); }
+      if (k === ' ') { e.preventDefault(); clickBtn.click(); } // keep your original optional space shortcut
+    });
   </script>
 </body>
 </html>
