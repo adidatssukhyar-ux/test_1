@@ -3,497 +3,505 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Pixel Arena — Single File</title>
+<title>Street Arena — Prototype</title>
 <style>
-  :root{--bg:#071428;--panel:#0b1220;--accent:#7c3aed;--muted:#94a3b8;}
-  html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;}
-  body{background:linear-gradient(180deg,#071428,#041022);color:#e6eef8;display:flex;gap:16px;padding:18px;box-sizing:border-box;}
-  .panel{width:320px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:14px;border-radius:12px;box-shadow:0 10px 40px rgba(2,6,23,.6);}
-  h3{margin:6px 0 12px 0;font-size:16px;}
+  :root{--bg:#0f1724;--panel:#0b1220;--accent:#e11d48;--muted:#94a3b8;}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;}
+  body{background:linear-gradient(180deg,#071026,#041022);display:flex;height:100vh;align-items:stretch;gap:18px;padding:18px;box-sizing:border-box;color:#f8fafc;}
+  .panel{width:320px;padding:14px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);box-shadow:0 10px 40px rgba(2,6,23,.6);}
+  h2{margin:4px 0 12px 0;font-size:18px;}
+  label{display:block;color:var(--muted);font-size:13px;margin-bottom:6px;}
   .row{display:flex;gap:8px;align-items:center;margin-bottom:10px;}
-  label{font-size:13px;color:var(--muted);width:88px;}
-  input[type=color]{width:62px;height:36px;border:none;background:none;padding:0;cursor:pointer;}
-  .preset-row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
-  button{background:var(--accent);border:none;color:white;padding:8px 10px;border-radius:8px;cursor:pointer;}
+  input[type=color]{width:56px;height:36px;border-radius:8px;border:none;padding:0;cursor:pointer;}
+  .preset-row{display:flex;gap:8px;flex-wrap:wrap;}
+  button{background:var(--accent);border:none;color:white;padding:8px 10px;border-radius:8px;cursor:pointer;font-weight:700;}
   .ability-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px;}
-  .slot{background:rgba(255,255,255,0.03);padding:8px;border-radius:8px;text-align:center;font-weight:700;position:relative;}
-  .slot small{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:4px;}
-  .cool{position:absolute;left:6px;right:6px;bottom:6px;height:6px;background:rgba(0,0,0,0.3);border-radius:6px;overflow:hidden;}
-  .cool > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#f97316);width:0%;}
+  .slot{background:rgba(255,255,255,0.03);padding:10px;border-radius:10px;text-align:center;font-weight:800;position:relative;height:64px;display:flex;align-items:center;justify-content:center;}
+  .slot small{display:block;font-weight:600;color:var(--muted);font-size:12px;margin-top:6px;}
+  .cool{position:absolute;left:8px;right:8px;bottom:10px;height:6px;background:rgba(0,0,0,0.3);border-radius:6px;overflow:hidden;}
+  .cool > i{display:block;height:100%;background:linear-gradient(90deg,#ffb86b,#f97316);width:0%;}
   .hint{color:var(--muted);font-size:13px;margin-top:10px;}
-  .footer{color:var(--muted);font-size:13px;margin-top:12px;}
-  .scene-wrap{flex:1;display:flex;flex-direction:column;gap:8px;}
-  canvas{width:100%;height:calc(100vh - 56px);border-radius:12px;display:block;background:#061026;}
-  .hud-top{display:flex;gap:8px;align-items:center;padding:6px;color:var(--muted);}
-  .hp{width:200px;height:12px;background:#142032;border-radius:8px;overflow:hidden;border:1px solid rgba(255,255,255,0.03);}
-  .hp > i{display:block;height:100%;background:linear-gradient(90deg,#ef4444,#f97316);width:100%;}
-  .controls{color:var(--muted);font-size:13px;margin-left:auto;}
-  .small{background:#123;padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.03);cursor:pointer;}
-  .footer-right{display:flex;gap:8px;align-items:center;}
-  .center-note{position:absolute;left:50%;transform:translateX(-50%);bottom:16px;color:rgba(255,255,255,0.7);font-size:13px;pointer-events:none;}
-  /* compact mobile */
-  @media (max-width:900px){body{flex-direction:column;} .panel{width:100%;order:2} canvas{height:60vh}}
+  .scene-wrap{flex:1;display:flex;flex-direction:column;gap:8px;position:relative;}
+  canvas{width:100%;height:calc(100vh - 56px);border-radius:12px;display:block;background:#0b1220;box-shadow:0 10px 40px rgba(2,6,23,.6);}
+  .hud{display:flex;align-items:center;gap:12px;padding:6px;color:var(--muted);}
+  .hpbar{height:18px;background:#0b1220;border-radius:8px;overflow:hidden;border:2px solid rgba(255,255,255,0.03);width:360px;}
+  .hpbar > i{display:block;height:100%;background:linear-gradient(90deg,#ef4444,#f97316);width:100%;}
+  .center-ui{position:absolute;left:50%;transform:translateX(-50%);top:14px;color:#f8fafc;font-weight:800;text-shadow:0 3px 20px rgba(0,0,0,0.6);}
+  .ability-hint{margin-left:auto;color:var(--muted);font-size:13px;}
+  .footer{color:var(--muted);font-size:13px;margin-top:10px;}
+  .floating{position:fixed;left:0;top:0;pointer-events:none;font-family:monospace;}
+  @media (max-width:900px){body{flex-direction:column;padding:12px;} .panel{width:100%;order:2} canvas{height:56vh}}
 </style>
 </head>
 <body>
   <aside class="panel">
-    <h3>Customize Character</h3>
-    <div class="row">
-      <label>Body</label><input id="bodyColor" type="color" value="#ff6b6b">
-    </div>
-    <div class="row">
-      <label>Hair</label><input id="hairColor" type="color" value="#222222">
-    </div>
-    <div class="row">
-      <label>Eyes</label><input id="eyeColor" type="color" value="#111111">
-    </div>
-    <div class="preset-row">
-      <button id="preset1">Spiky</button><button id="preset2">Curtains</button><button id="preset3">Mohawk</button>
+    <h2>Character Customizer</h2>
+    <label>Body Color</label>
+    <div class="row"><input id="bodyColor" type="color" value="#ff6b6b"><div style="flex:1"></div></div>
+    <label>Hair Color</label>
+    <div class="row"><input id="hairColor" type="color" value="#222222"><div style="flex:1"></div></div>
+    <label>Accent / Outfit</label>
+    <div class="row"><input id="accColor" type="color" value="#60a5fa"><div style="flex:1"></div></div>
+
+    <div class="preset-row" style="margin-top:8px;">
+      <button id="preset1">Raging Red</button>
+      <button id="preset2">Cool Blue</button>
+      <button id="preset3">Forest</button>
     </div>
 
-    <h3 style="margin-top:14px">Abilities (1–4)</h3>
+    <h2 style="margin-top:14px">Abilities (1–4)</h2>
     <div class="ability-grid">
-      <div class="slot" id="slot1">1<small>Fireball</small><div class="cool"><i id="c1"></i></div></div>
-      <div class="slot" id="slot2">2<small>Shockwave</small><div class="cool"><i id="c2"></i></div></div>
-      <div class="slot" id="slot3">3<small>Dash</small><div class="cool"><i id="c3"></i></div></div>
-      <div class="slot" id="slot4">4<small>Beam</small><div class="cool"><i id="c4"></i></div></div>
+      <div class="slot" id="slot1">1<small>Fire Punch</small><div class="cool"><i id="c1"></i></div></div>
+      <div class="slot" id="slot2">2<small>Rising Shock</small><div class="cool"><i id="c2"></i></div></div>
+      <div class="slot" id="slot3">3<small>Flash Dash</small><div class="cool"><i id="c3"></i></div></div>
+      <div class="slot" id="slot4">4<small>Focus Beam</small><div class="cool"><i id="c4"></i></div></div>
     </div>
-    <div class="hint">Use WASD to move • Mouse to aim • Press 1-4 to use abilities • R to respawn</div>
 
-    <div class="footer">
-      <div style="margin-top:10px;display:flex;gap:8px;">
-        <button id="spawnBtn">Spawn +3 Dummies</button>
-        <button id="resetBtn" class="small">Reset</button>
-      </div>
-      <div style="margin-top:10px;">
-        <div style="font-size:13px;color:var(--muted)">Deploy: single-file, ready for Vercel</div>
-      </div>
+    <div class="hint">Use A/D or ←/→ to move • W to jump • 1–4 to use abilities • R to reset dummies</div>
+    <div class="footer" style="margin-top:12px;">
+      <div style="display:flex;gap:8px"><button id="spawn">Spawn +4 Dummies</button><button id="reset" style="background:#0f1724;padding:8px;border:1px solid rgba(255,255,255,0.04);">Reset</button></div>
+      <div style="margin-top:8px;color:var(--muted)">Drop-in your sprites where indicated to replace placeholders.</div>
     </div>
   </aside>
 
   <section class="scene-wrap">
-    <div class="hud-top">
-      <div class="hp"><i id="hpFill" style="width:100%"></i></div>
-      <div id="status" style="margin-left:8px">Ready</div>
-      <div class="controls">Dummies: <span id="dummyCount">0</span></div>
+    <div class="hud">
+      <div style="display:flex;flex-direction:column;">
+        <div style="font-weight:800">PLAYER</div>
+        <div class="hpbar"><i id="hpFill" style="width:100%"></i></div>
+      </div>
       <div style="flex:1"></div>
-      <div class="footer-right"><button id="downloadConfig" class="small">Copy Config</button></div>
+      <div class="ability-hint">Dummies: <span id="count">0</span></div>
     </div>
-    <canvas id="c"></canvas>
-    <div class="center-note">Pixel Arena — press 1–4 to fire abilities</div>
+
+    <div class="center-ui">STREET ARENA — Prototype</div>
+    <canvas id="stage"></canvas>
   </section>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.156.0/build/three.min.js"></script>
+  <div class="floating" id="floatroot"></div>
+
 <script>
-/* =========================
-   Single-file Pixel Arena
-   - blocky 3D player, stadium, dummies
-   - customizer: body/hair/eyes
-   - 4 ability slots (1: projectile, 2: aoe, 3: dash, 4: short beam)
-   - WASD movement, mouse aim
-   - minimal visual feedback: particles, cooldown bars, floating damage
-   ========================= */
+/* Street Fighter style 2D prototype — single file
+   - 2D canvas sprites (placeholders)
+   - side-on view, parallax backgrounds
+   - character customizer (colors)
+   - 4 ability slots mapped to keys 1-4
+   - dummies spawn, take hits, have simple state machine
+   - hits produce spark + screen shake + floating damage
+*/
 
-const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({canvas, antialias:false, alpha:false});
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.setSize(window.innerWidth - 380, Math.max(window.innerHeight - 120, 420));
-renderer.setClearColor(0x061026, 1);
-window.addEventListener('resize', ()=> {
-  renderer.setSize(window.innerWidth - 380, Math.max(window.innerHeight - 120, 420));
-  camera.aspect = (window.innerWidth - 380) / Math.max(window.innerHeight - 120, 420);
-  camera.updateProjectionMatrix();
-});
-
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(45, (window.innerWidth - 380) / Math.max(window.innerHeight - 120, 420), 0.1, 100);
-camera.position.set(0, 8, 10);
-camera.lookAt(0,0,0);
-
-const ambient = new THREE.AmbientLight(0xffffff, 0.7);
-scene.add(ambient);
-const dir = new THREE.DirectionalLight(0xffffff, 0.6);
-dir.position.set(5,10,3); scene.add(dir);
-
-/* helper: nearest-pixel material look */
-function pixelMaterial(hex){
-  return new THREE.MeshStandardMaterial({color:hex, roughness:0.7, metalness:0.0});
+/* ---------- Setup canvas & sizes ---------- */
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d', {alpha:false});
+function resize(){
+  const w = Math.max(900, window.innerWidth - 380);
+  const h = Math.max(420, window.innerHeight - 120);
+  canvas.width = Math.floor(w * devicePixelRatio);
+  canvas.height = Math.floor(h * devicePixelRatio);
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
 }
+window.addEventListener('resize', resize);
+resize();
 
-/* stadium ground (blocky tiled look using simple boxes) */
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(40,40), new THREE.MeshStandardMaterial({color:0x072034}));
-ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
+/* ---------- Globals & assets (placeholders) ---------- */
+const floatRoot = document.getElementById('floatroot');
+let shake = {x:0,y:0,m:0};
+const palette = {body:'#ff6b6b',hair:'#222',acc:'#60a5fa'};
+const sprites = {}; // hooks to drop real sprite images
+const font = '700 18px "Inter", system-ui, sans-serif';
 
-/* stadium ring */
-const ringGeo = new THREE.RingGeometry(6.5, 8, 64);
-const ringMat = new THREE.MeshStandardMaterial({color:0x0b2740, side: THREE.DoubleSide});
-const ring = new THREE.Mesh(ringGeo, ringMat);
-ring.rotation.x = -Math.PI/2; ring.position.y = 0.01; scene.add(ring);
-
-/* Pixel-style player (group of boxes) */
-const player = {pos:new THREE.Vector3(0,0.9,0), rot:0, hp:100, maxHp:100, cfg:{body:'#ff6b6b', hair:'#222222', eyes:'#111111'}};
-const playerGroup = new THREE.Group();
-scene.add(playerGroup);
-
-function buildPlayer(){
-  playerGroup.clear();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.9,1.2,0.6), pixelMaterial(player.cfg.body));
-  body.position.set(0,0.6,0); playerGroup.add(body);
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.9,0.7,0.6), pixelMaterial(player.cfg.body));
-  head.position.set(0,1.1,0); playerGroup.add(head);
-  const hair = new THREE.Mesh(new THREE.BoxGeometry(0.98,0.36,0.62), pixelMaterial(player.cfg.hair));
-  hair.position.set(0,1.28,0); playerGroup.add(hair);
-  const eyeL = new THREE.Mesh(new THREE.BoxGeometry(0.18,0.12,0.01), new THREE.MeshBasicMaterial({color:player.cfg.eyes}));
-  eyeL.position.set(-0.18,1.08,0.31); playerGroup.add(eyeL);
-  const eyeR = eyeL.clone(); eyeR.position.x = 0.18; playerGroup.add(eyeR);
-  playerGroup.position.copy(player.pos);
-}
-
-/* dummy template */
-const dummies = []; // {mesh, hp, id}
-function spawnDummy(x,z){
-  const g = new THREE.BoxGeometry(0.6,0.9,0.4);
-  const m = pixelMaterial(0xbfc7d6);
-  const mesh = new THREE.Mesh(g,m);
-  mesh.position.set(x,0.45,z);
-  scene.add(mesh);
-  const id = Math.floor(Math.random()*1000000);
-  dummies.push({id,mesh,hp:40,maxHp:40,vel:new THREE.Vector3()});
-  updateDummyCount();
-}
-function spawnMany(n=3){
-  for(let i=0;i<n;i++){
-    const a = Math.random()*Math.PI*2;
-    const r = 2 + Math.random()*4;
-    spawnDummy(Math.cos(a)*r, Math.sin(a)*r);
-  }
-}
-
-/* projectiles and effects */
-const projectiles = []; // {mesh, vel, life, dmg, owner}
-const aos = []; // aoe visuals {mesh, life, radius}
-
-/* simple particle pool (squares) */
-const particles = [];
-function spawnParticle(pos, color=0xffc58b, count=8){
-  for(let i=0;i<count;i++){
-    const geom = new THREE.PlaneGeometry(0.12,0.12);
-    const mat = new THREE.MeshBasicMaterial({color,transparent:true});
-    const m = new THREE.Mesh(geom, mat);
-    m.position.copy(pos);
-    m.position.y += 0.5 + Math.random()*0.2;
-    m.rotation.x = -Math.PI/2;
-    scene.add(m);
-    particles.push({mesh:m, vel:new THREE.Vector3((Math.random()-0.5)*1.5, Math.random()*1.2, (Math.random()-0.5)*1.5), life:0.6});
-  }
-}
-
-/* abilities config and cooldown tracking */
-const ABILITIES = {
-  1: {id:1,name:'Fireball',type:'projectile',cool:600,damage:16,speed:8,radius:0.12},
-  2: {id:2,name:'Shockwave',type:'aoe',cool:1400,damage:12,radius:2.0,duration:0.5},
-  3: {id:3,name:'Dash',type:'dash',cool:1000,damage:8,speed:12},
-  4: {id:4,name:'Beam',type:'beam',cool:1800,damage:3,duration:600} // ms duration short beam
+/* ---------- Player & dummy models ---------- */
+const player = {
+  x: 180, y: 260, vx:0, vy:0, w:64, h:96,
+  facing: 1, onGround: true, jumping: false,
+  hp: 100, maxHp: 100,
+  state: 'idle', anim:0, combo:0
 };
-const cdState = {1:0,2:0,3:0,4:0};
-const cEls = {1:document.getElementById('c1'),2:document.getElementById('c2'),3:document.getElementById('c3'),4:document.getElementById('c4')};
+const dummies = []; // {x,y,w,h,hp,state,anim,staggerTimer}
 
-/* input and movement */
+/* ---------- Input ---------- */
 const keys = {};
-window.addEventListener('keydown', (e)=>{ keys[e.key.toLowerCase()] = true; if(['1','2','3','4'].includes(e.key)){ useAbility(Number(e.key)); }});
-window.addEventListener('keyup', (e)=>{ keys[e.key.toLowerCase()] = false; });
-let mouse = {x:0,y:0,down:false,screenX:0,screenY:0};
-canvas.addEventListener('mousemove', (e)=>{ mouse.screenX = e.clientX; mouse.screenY = e.clientY; });
-canvas.addEventListener('mousedown', ()=> mouse.down = true);
-canvas.addEventListener('mouseup', ()=> mouse.down = false);
+window.addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+  if(['1','2','3','4'].includes(e.key)) useAbility(Number(e.key));
+  if(e.key.toLowerCase() === 'r') resetArena();
+});
+window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
-/* ability use logic */
+/* ---------- UI elements for cooldown visuals ---------- */
+const AB = {
+  1: {name:'Fire Punch', cool:700, last: -9999},
+  2: {name:'Rising Shock', cool:1400, last: -9999},
+  3: {name:'Flash Dash', cool:1000, last: -9999},
+  4: {name:'Focus Beam', cool:1800, last: -9999}
+};
+const cEls = {1:document.getElementById('c1'),2:document.getElementById('c2'),3:document.getElementById('c3'),4:document.getElementById('c4')};
+function updateCooldowns(){
+  const now = performance.now();
+  for(let i=1;i<=4;i++){
+    const a = AB[i];
+    const rem = Math.max(0, a.last + a.cool - now);
+    const pct = 1 - (rem / a.cool);
+    cEls[i].style.width = (pct*100)+'%';
+  }
+  requestAnimationFrame(updateCooldowns);
+}
+requestAnimationFrame(updateCooldowns);
+
+/* ---------- Utility helpers ---------- */
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function rand(min,max){ return min + Math.random()*(max-min); }
+function pushShake(m=6){
+  shake.m = Math.max(shake.m, m);
+}
+
+/* ---------- Floating text DOM ---------- */
+function floatText(x,y,txt,color='#fff',ms=900){
+  const el = document.createElement('div');
+  el.textContent = txt; el.style.position='absolute'; el.style.left = (x)+'px'; el.style.top = (y)+'px';
+  el.style.transform = 'translate(-50%,-50%)'; el.style.color = color; el.style.fontWeight = '900';
+  el.style.pointerEvents = 'none'; el.style.transition = `transform ${ms}ms cubic-bezier(.2,.8,0,1), opacity ${ms}ms`;
+  floatRoot.appendChild(el);
+  requestAnimationFrame(()=> {
+    el.style.transform = 'translate(-50%,-140%)'; el.style.opacity = '0';
+  });
+  setTimeout(()=> el.remove(), ms+40);
+}
+
+/* ---------- Spawn & reset ---------- */
+function spawnDummyAt(x,y){
+  const d = {x,y,w:56,h:86,hp:70,maxHp:70,state:'idle',anim:0,vel:{x:0,y:0},stun:0};
+  dummies.push(d); updateCount();
+}
+function spawnMany(n=4){
+  for(let i=0;i<n;i++){
+    const x = 520 + rand(-140,140);
+    const y = 260 + rand(-6,12);
+    spawnDummyAt(x,y);
+  }
+}
+function resetArena(){
+  dummies.length = 0; spawnMany(6); player.hp = player.maxHp; player.x = 180; player.y = 260; player.vx = 0; player.vy = 0; updateCount();
+}
+document.getElementById('spawn').addEventListener('click', ()=>{ spawnMany(4); });
+document.getElementById('reset').addEventListener('click', resetArena);
+
+/* ---------- Customizer binding ---------- */
+document.getElementById('bodyColor').addEventListener('input', e=>{ palette.body = e.target.value; });
+document.getElementById('hairColor').addEventListener('input', e=>{ palette.hair = e.target.value; });
+document.getElementById('accColor').addEventListener('input', e=>{ palette.acc = e.target.value; });
+document.getElementById('preset1').addEventListener('click', ()=>{ palette.body='#ff6b6b'; palette.hair='#2d2b2b'; palette.acc='#ffb86b'; updateInputs();});
+document.getElementById('preset2').addEventListener('click', ()=>{ palette.body='#60a5fa'; palette.hair='#0b1220'; palette.acc='#f97316'; updateInputs();});
+document.getElementById('preset3').addEventListener('click', ()=>{ palette.body='#34d399'; palette.hair='#111827'; palette.acc='#ffcd4a'; updateInputs();});
+function updateInputs(){
+  document.getElementById('bodyColor').value = palette.body;
+  document.getElementById('hairColor').value = palette.hair;
+  document.getElementById('accColor').value = palette.acc;
+}
+
+/* ---------- Combat primitives (2D collision) ---------- */
+function rectHit(ax,ay,aw,ah,bx,by,bw,bh){
+  return !(ax+aw/2 < bx-bw/2 || ax-aw/2 > bx+bw/2 || ay+ah/2 < by-bh/2 || ay-ah/2 > by+bh/2);
+}
+
+/* ---------- Abilities ---------- */
 function useAbility(slot){
   const now = performance.now();
-  const ab = ABILITIES[slot];
-  if(!ab) return;
-  if(now < cdState[slot]) { setStatus('On cooldown'); return; }
-  cdState[slot] = now + ab.cool;
-  updateCooldownVisual(slot);
-  if(ab.type === 'projectile'){
-    // spawn sphere projectile from player forward
-    const dir = aimDirection();
-    const geom = new THREE.SphereGeometry(ab.radius,8,8);
-    const mat = new THREE.MeshStandardMaterial({color:0xffb86b});
-    const mesh = new THREE.Mesh(geom, mat);
-    const pos = new THREE.Vector3().copy(player.pos).add(new THREE.Vector3(dir.x,0.6,dir.z).multiplyScalar(0.8));
-    mesh.position.copy(pos);
-    scene.add(mesh);
-    projectiles.push({mesh, vel: new THREE.Vector3(dir.x*ab.speed, 0, dir.z*ab.speed), life:3, dmg:ab.damage});
-    spawnParticle(pos, 0xffb86b, 6);
-    setStatus('Fired Fireball');
-  } else if(ab.type === 'aoe'){
-    // aoe around player
-    const geom = new THREE.CircleGeometry(ab.radius, 32);
-    const mat = new THREE.MeshBasicMaterial({color:0x7c3aed, transparent:true, opacity:0.16, side:THREE.DoubleSide});
-    const mesh = new THREE.Mesh(geom, mat);
-    mesh.rotation.x = -Math.PI/2; mesh.position.copy(player.pos); mesh.position.y = 0.02;
-    scene.add(mesh);
-    aos.push({mesh, life:ab.duration, radius:ab.radius, dmg:ab.damage});
-    // apply instantly
-    for(const d of dummies){ const dist = d.mesh.position.distanceTo(player.pos); if(dist <= ab.radius+0.6){ hitDummy(d, ab.damage, new THREE.Vector3().subVectors(d.mesh.position, player.pos).normalize()); } }
-    spawnParticle(player.pos, 0x7c3aed, 12);
-    setStatus('Shockwave');
-  } else if(ab.type === 'dash'){
-    // dash: impulse in aim direction and hit dummies in path
-    const dir = aimDirection();
-    const dashVel = new THREE.Vector3(dir.x * ab.speed, 0, dir.z * ab.speed);
-    player.pos.add(dashVel.clone().multiplyScalar(0.12));
-    // tiny push dummies near
-    for(const d of dummies){ if(d.mesh.position.distanceTo(player.pos) < 1.2){ hitDummy(d, ab.damage, dashVel.clone().normalize()); } }
-    spawnParticle(player.pos, 0xffffff, 8);
-    setStatus('Dashed');
-  } else if(ab.type === 'beam'){
-    // short timed beam: run sweep and spawn visual
-    const dir = aimDirection();
-    const beamId = Date.now();
-    const beamGeom = new THREE.CylinderGeometry(0.05,0.05,8,6);
-    const beamMat = new THREE.MeshBasicMaterial({color:0x88ffea, transparent:true, opacity:0.85});
-    const beam = new THREE.Mesh(beamGeom, beamMat);
-    beam.rotation.x = Math.PI/2;
-    beam.position.copy(player.pos).add(new THREE.Vector3(dir.x*4,0.6,dir.z*4));
-    scene.add(beam);
-    setTimeout(()=> { scene.remove(beam); }, ab.duration);
-    // continuous short damage in front instantly
+  const ab = AB[slot];
+  if(now < ab.last + ab.cool) { setStatus('On cooldown'); return; }
+  ab.last = now;
+  // cooldown visual will update automatically
+  if(slot === 1){ // Fire Punch: short lunge punch
+    const reach = 80; const dmg = 14;
+    player.state = 'attack'; player.anim = 0;
+    // check dummies in front
     for(const d of dummies){
-      const toD = new THREE.Vector3().subVectors(d.mesh.position, player.pos);
-      const forward = new THREE.Vector3(dir.x,0,dir.z);
-      if(toD.dot(forward) > 0 && toD.length() < 5){
-        hitDummy(d, ab.damage*2, forward);
+      if(d.state === 'dead') continue;
+      if(player.facing > 0){
+        if(rectHit(player.x+reach, player.y, 140, 80, d.x, d.y, d.w, d.h)){
+          hitDummy(d, dmg, 12);
+        }
+      } else {
+        if(rectHit(player.x-reach, player.y, 140, 80, d.x, d.y, d.w, d.h)){
+          hitDummy(d, dmg, -12);
+        }
       }
     }
-    spawnParticle(player.pos.clone().add(new THREE.Vector3(dir.x*1.2,0,dir.z*1.2)), 0x88ffea, 10);
-    setStatus('Beam');
+    pushShake(6);
+    setStatus('Fire Punch');
+  } else if(slot === 2){ // Rising Shock: vertical hop + hit
+    const dmg = 18;
+    player.vy = -8; player.jumping = true; player.state = 'attack';
+    for(const d of dummies){
+      if(d.state === 'dead') continue;
+      if(Math.abs(d.x - player.x) < 90 && Math.abs(d.y - player.y) < 80){
+        hitDummy(d, dmg, (d.x>player.x)?6:-6);
+      }
+    }
+    pushShake(8); setStatus('Rising Shock');
+  } else if(slot === 3){ // Flash Dash: quick dash that knocks back
+    const dir = player.facing;
+    const dash = 140;
+    player.x += dir * dash;
+    for(const d of dummies){
+      if(d.state === 'dead') continue;
+      if(rectHit(player.x + dir*40, player.y, 130, 90, d.x, d.y, d.w, d.h)){
+        hitDummy(d, 10, dir*16);
+      }
+    }
+    pushShake(5); setStatus('Flash Dash');
+  } else if(slot === 4){ // Focus Beam: narrow long-range hit
+    const dmg = 6;
+    for(const d of dummies){
+      if(d.state === 'dead') continue;
+      const dx = d.x - player.x;
+      const inFront = (player.facing>0 && dx>0) || (player.facing<0 && dx<0);
+      if(inFront && Math.abs(d.y - player.y) < 80 && Math.abs(dx) < 420){
+        hitDummy(d, dmg, (dx>0)?6:-6);
+      }
+    }
+    pushShake(4); setStatus('Focus Beam');
   }
 }
 
-/* aim direction from camera to mouse onto ground plane */
-function aimDirection(){
-  // convert mouse into -1..1 NDC
-  const rect = renderer.domElement.getBoundingClientRect();
-  const ndcX = ((mouse.screenX - rect.left) / rect.width) * 2 - 1;
-  const ndcY = -((mouse.screenY - rect.top) / rect.height) * 2 + 1;
-  const v = new THREE.Vector3(ndcX, ndcY, 0.5).unproject(camera);
-  const dir = new THREE.Vector3().subVectors(v, camera.position).normalize();
-  // intersect with y=0 plane
-  const t = (0 - camera.position.y) / dir.y;
-  const intersect = new THREE.Vector3().copy(camera.position).add(dir.multiplyScalar(t));
-  const forward = new THREE.Vector3().subVectors(intersect, player.pos);
-  forward.y = 0;
-  forward.normalize();
-  return forward;
-}
-
-/* hit computation */
-function hitDummy(d, dmg, pushDir){
-  if(d.hp <= 0) return;
+/* ---------- Hit and dummy logic ---------- */
+function hitDummy(d, dmg, push){
+  if(d.state === 'dead') return;
   d.hp -= dmg;
-  spawnParticle(d.mesh.position, 0xffc0c0, 6);
-  // tiny knockback
-  d.vel.add(pushDir.clone().multiplyScalar(1.6));
-  // floating damage: quickly show title using DOM
-  showFloatingText(d.mesh.position.clone(), `-${Math.floor(dmg)}`, 0xffe6e6);
+  d.stun = 0.35;
+  d.state = 'hit';
+  d.vel.x += push * 0.6;
+  floatText(d.x, d.y - 40, `-${Math.floor(dmg)}`, '#ffd1d1');
+  spawnSparks(d.x, d.y);
   if(d.hp <= 0){
-    // die: fall over (rotate and lower)
-    d.mesh.userData.dead = true;
-    setTimeout(()=>{ // respawn after 2s
-      scene.remove(d.mesh);
-      const idx = dummies.findIndex(x=>x.id===d.id);
-      if(idx !== -1) dummies.splice(idx,1);
-      updateDummyCount();
-      setTimeout(()=> spawnMany(1), 1200);
-    }, 800);
+    d.state = 'dead';
+    d.deadAt = performance.now();
+    spawnSparks(d.x, d.y, 18);
+    pushShake(10);
   }
 }
 
-/* floating damage text using simple DOM overlay */
-const floatingRoot = document.createElement('div');
-floatingRoot.style.position = 'absolute'; floatingRoot.style.left = '0'; floatingRoot.style.top = '0'; floatingRoot.style.pointerEvents='none';
-document.body.appendChild(floatingRoot);
-function showFloatingText(worldPos, text, color){
-  // project to screen
-  const v = worldPos.clone();
-  v.project(camera);
-  const x = (v.x * 0.5 + 0.5) * window.innerWidth;
-  const y = (-v.y * 0.5 + 0.5) * window.innerHeight;
-  const el = document.createElement('div');
-  el.textContent = text; el.style.position='absolute'; el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.transform='translate(-50%,-50%)';
-  el.style.color = '#' + color.toString(16).padStart(6,'0'); el.style.fontWeight = '800'; el.style.fontFamily='monospace';
-  el.style.opacity = '1'; el.style.transition='transform 900ms ease-out, opacity 900ms';
-  floatingRoot.appendChild(el);
-  requestAnimationFrame(()=> {
-    el.style.transform = 'translate(-50%,-140%) scale(0.95)';
-    el.style.opacity = '0';
-  });
-  setTimeout(()=> floatingRoot.removeChild(el), 900);
-}
-
-/* update cooldown bars visually */
-function updateCooldownVisual(slot){
-  const el = cEls[slot];
-  if(!el) return;
-  const total = ABILITIES[slot].cool;
-  const then = performance.now();
-  function tick(){
-    const rem = Math.max(0, cdState[slot] - performance.now());
-    const p = 1 - rem / total;
-    el.style.width = (p*100) + '%';
-    if(rem > 0) requestAnimationFrame(tick);
-    else { el.style.width = '100%'; setTimeout(()=> el.style.width='0%',50); }
+/* ---------- Visual effects: sparks ---------- */
+const sparks = [];
+function spawnSparks(x,y,count=10){
+  for(let i=0;i<count;i++){
+    sparks.push({x, y, vx:rand(-4,4), vy:rand(-6,-1), life:rand(400,900), t:0, col: `hsl(${rand(20,40)},90%,60%)`});
   }
-  requestAnimationFrame(tick);
 }
 
-/* update dummy counter */
-function updateDummyCount(){ document.getElementById('dummyCount').textContent = dummies.length; }
-
-/* status text */
-const statusEl = document.getElementById('status');
-let statusTimer = 0;
-function setStatus(t){
-  statusEl.textContent = t;
-  statusTimer = performance.now() + 1200;
+/* ---------- draw helpers (Street Fighter style) ---------- */
+function drawBackground(ctx, w, h){
+  // simple parallax layers: distant stadium, mid crowd, foreground floor
+  // sky gradient
+  const g = ctx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,'#102037'); g.addColorStop(1,'#071226');
+  ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+  // distant banners
+  ctx.fillStyle = '#0b2133';
+  ctx.fillRect(0, h*0.55, w, h*0.45);
+  // crowd silhouette
+  ctx.fillStyle = '#071826';
+  for(let i=0;i<4;i++){
+    ctx.fillRect(0, h*0.62 + i*6, w, 6);
+  }
+  // arena floor
+  ctx.fillStyle = '#0b1220';
+  ctx.fillRect(0, h*0.73, w, h*0.27);
+  // ring line
+  ctx.strokeStyle = '#2b3b4b'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(80, h*0.72); ctx.lineTo(w-80, h*0.72); ctx.stroke();
 }
 
-/* spawn initial dummies */
-spawnMany(6);
+/* ---------- draw player & dummies (placeholder painted sprites) ---------- */
+function drawCharacter(ctx, x, y, w, h, facing, pal, state, t){
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(facing, 1);
 
-/* build player and initial UI */
-buildPlayer();
-document.getElementById('bodyColor').addEventListener('input', (e)=>{ player.cfg.body = e.target.value; buildPlayer(); });
-document.getElementById('hairColor').addEventListener('input', (e)=>{ player.cfg.hair = e.target.value; buildPlayer(); });
-document.getElementById('eyeColor').addEventListener('input', (e)=>{ player.cfg.eyes = e.target.value; buildPlayer(); });
-document.getElementById('preset1').addEventListener('click', ()=>{ document.getElementById('hairColor').value='#2d2b2b'; document.getElementById('bodyColor').value='#ff6b6b'; document.getElementById('eyeColor').value='#111111'; player.cfg = {body:'#ff6b6b', hair:'#2d2b2b', eyes:'#111111'}; buildPlayer();});
-document.getElementById('preset2').addEventListener('click', ()=>{ document.getElementById('hairColor').value='#4b5563'; document.getElementById('bodyColor').value='#60a5fa'; document.getElementById('eyeColor').value='#0b1220'; player.cfg={body:'#60a5fa',hair:'#4b5563',eyes:'#0b1220'}; buildPlayer();});
-document.getElementById('preset3').addEventListener('click', ()=>{ document.getElementById('hairColor').value='#ffcd4a'; document.getElementById('bodyColor').value='#34d399'; document.getElementById('eyeColor').value='#0b1220'; player.cfg={body:'#34d399',hair:'#ffcd4a',eyes:'#0b1220'}; buildPlayer();});
+  // shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath(); ctx.ellipse(0, h*0.48, w*0.6, h*0.13, 0, 0, Math.PI*2); ctx.fill();
 
-document.getElementById('spawnBtn').addEventListener('click', ()=>{ spawnMany(3); updateDummyCount(); });
-document.getElementById('resetBtn').addEventListener('click', ()=>{ for(const d of dummies){ scene.remove(d.mesh);} dummies.length=0; spawnMany(5); updateDummyCount();});
+  // torso (soft painted)
+  ctx.fillStyle = pal.body;
+  roundRect(ctx, -w*0.5, -h*0.5 + 12, w, h*0.6, 12);
+  ctx.fill();
 
-/* copy config */
-document.getElementById('downloadConfig').addEventListener('click', ()=> {
-  const cfg = {body:player.cfg.body, hair:player.cfg.hair, eyes:player.cfg.eyes};
-  navigator.clipboard?.writeText(JSON.stringify(cfg, null, 2)).then(()=> setStatus('Config copied'));
-});
+  // accent sash
+  ctx.fillStyle = pal.acc;
+  ctx.fillRect(-w*0.5, -h*0.5 + 18, w, 10);
 
-/* simple physics + game loop */
+  // head
+  ctx.beginPath(); ctx.fillStyle = pal.body;
+  ctx.ellipse(0, -h*0.42, w*0.36, w*0.36, 0, 0, Math.PI*2); ctx.fill();
+
+  // hair
+  ctx.fillStyle = pal.hair;
+  ctx.beginPath(); ctx.moveTo(-w*0.36, -h*0.55); ctx.quadraticCurveTo(0, -h*0.75, w*0.36, -h*0.55); ctx.fill();
+
+  // eyes
+  ctx.fillStyle = '#0b1220'; ctx.fillRect(-10, -h*0.44, 6, 8); ctx.fillRect(4, -h*0.44, 6, 8);
+
+  // rough highlight for punch animation
+  if(state === 'attack'){
+    ctx.fillStyle = 'rgba(255,200,120,0.18)';
+    ctx.beginPath(); ctx.ellipse(w*0.28 + (Math.sin(t*0.04)*6), -h*0.18, 24, 14, 0, 0, Math.PI*2); ctx.fill();
+  }
+
+  ctx.restore();
+}
+function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+
+/* ---------- main loop ---------- */
 let last = performance.now();
-function animate(){
-  const now = performance.now();
-  const dt = Math.min(0.035, (now - last)/1000);
-  last = now;
+function loop(){
+  const now = performance.now(); const dt = Math.min(0.032, (now - last)/1000); last = now;
+  const cw = canvas.clientWidth; const ch = canvas.clientHeight;
 
-  // player movement WASD
-  const speed = 4.0;
-  const mv = new THREE.Vector3();
-  if(keys['w'] || keys['arrowup']) mv.z -= 1;
-  if(keys['s'] || keys['arrowdown']) mv.z += 1;
-  if(keys['a'] || keys['arrowleft']) mv.x -= 1;
-  if(keys['d'] || keys['arrowright']) mv.x += 1;
-  if(mv.lengthSq() > 0){ mv.normalize(); player.pos.add(mv.multiplyScalar(speed*dt)); }
-  // clamp within ring
-  const r = Math.hypot(player.pos.x, player.pos.z);
-  if(r > 7.6){ player.pos.multiplyScalar(7.6 / r); }
+  // update shake
+  if(shake.m > 0){ shake.x = rand(-shake.m, shake.m); shake.y = rand(-shake.m, shake.m); shake.m *= 0.88; if(shake.m < 0.3) shake.m = 0; }
+  else { shake.x = 0; shake.y = 0; }
 
-  // update player group pos and rotate to aim
-  const aim = aimDirection();
-  playerGroup.position.copy(player.pos);
-  const yaw = Math.atan2(aim.x, -aim.z);
-  playerGroup.rotation.y = yaw + Math.PI;
-  // update hp bar
-  document.getElementById('hpFill').style.width = Math.max(0, (player.hp/player.maxHp)*100) + '%';
+  // physics: player movement
+  const acc = 650;
+  if(keys['a']||keys['arrowleft']){ player.vx = -220; player.facing = -1; player.state = 'run'; }
+  else if(keys['d']||keys['arrowright']){ player.vx = 220; player.facing = 1; player.state = 'run'; }
+  else { player.vx = 0; if(!player.jumping) player.state = 'idle'; }
 
-  // update projectiles
-  for(let i = projectiles.length-1; i>=0; i--){
-    const p = projectiles[i];
-    p.life -= dt;
-    p.mesh.position.addScaledVector(p.vel, dt);
-    // check collisions with dummies
-    for(const d of dummies){
-      if(d.hp <= 0) continue;
-      const dist = d.mesh.position.distanceTo(p.mesh.position);
-      if(dist < 0.6){
-        hitDummy(d, p.dmg, p.vel.clone().normalize());
-        // remove projectile
-        scene.remove(p.mesh);
-        projectiles.splice(i,1);
-        spawnParticle(p.mesh.position, 0xffc0a0, 6);
-        break;
+  // jump
+  if((keys['w'] || keys[' ']) && player.onGround){ player.vy = -520; player.onGround = false; player.jumping = true; }
+
+  // integrate
+  player.x += player.vx * dt;
+  player.y += player.vy * dt;
+  // gravity
+  player.vy += 1600 * dt;
+  if(player.y > 260){ player.y = 260; player.vy = 0; player.onGround = true; player.jumping = false; }
+
+  // clamp player within stage
+  player.x = clamp(player.x, 80, cw - 150);
+
+  // update dummies
+  for(const d of dummies){
+    if(d.state !== 'dead'){
+      d.x += d.vel.x * dt * 60;
+      d.y += d.vel.y * dt * 60;
+      // friction
+      d.vel.x *= 0.9; d.vel.y *= 0.98;
+      // small AI wander
+      if(Math.random() < 0.008) d.vel.x += rand(-0.6,0.6);
+      d.x = clamp(d.x, 300, cw - 120);
+    } else {
+      // dead linger then respawn
+      if(now - d.deadAt > 1600){
+        // respawn at right side
+        const idx = dummies.indexOf(d);
+        if(idx !== -1){ dummies.splice(idx,1); spawnDummyAt(cw - rand(160,260), 260); }
       }
     }
-    if(p && p.life <= 0){ scene.remove(p.mesh); const idx = projectiles.indexOf(p); if(idx!==-1) projectiles.splice(idx,1); }
+    if(d.stun > 0) d.stun = Math.max(0, d.stun - dt);
   }
 
-  // update aos
-  for(let i=aos.length-1;i>=0;i--){
-    const a = aos[i]; a.life -= dt;
-    a.mesh.material.opacity = Math.max(0, a.life / 0.5) * 0.16;
-    if(a.life <= 0){ scene.remove(a.mesh); aos.splice(i,1); }
+  // sparks
+  for(let i=sparks.length-1;i>=0;i--){
+    const s = sparks[i]; s.t += dt*1000; s.x += s.vx * dt * 60; s.y += s.vy * dt * 60; s.vy += 0.1;
+    if(s.t > s.life){ sparks.splice(i,1); }
   }
 
-  // update dummies: simple wander + apply vel
+  // update UI hp bar
+  const hpFill = document.getElementById('hpFill'); hpFill.style.width = Math.max(0, (player.hp/player.maxHp)*100) + '%';
+
+  // draw
+  ctx.save();
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.translate(shake.x, shake.y);
+
+  drawBackground(ctx, cw, ch);
+
+  // floor line (depth cue)
+  ctx.fillStyle = '#111827'; ctx.fillRect(0, ch*0.72+4, cw, ch*0.28);
+
+  // draw dummies (back to front)
+  dummies.sort((a,b)=>a.x - b.x);
   for(const d of dummies){
-    if(d.mesh.userData.dead) continue;
-    if(Math.random() < 0.008) d.vel.add(new THREE.Vector3((Math.random()-0.5)*0.6,0,(Math.random()-0.5)*0.6));
-    d.mesh.position.addScaledVector(d.vel, dt);
-    d.vel.multiplyScalar(0.85);
-    // clamp inside ring
-    const r2 = Math.hypot(d.mesh.position.x, d.mesh.position.z);
-    if(r2 > 8.5){ d.mesh.position.multiplyScalar(8.5 / r2); }
-    // simple regen if damaged
-    if(d.hp < d.maxHp && Math.random() < 0.002){ d.hp += 0.2; }
+    // shadow
+    ctx.save();
+    drawCharacter(ctx, d.x, d.y, d.w, d.h, -1, {body:'#d1d9e6', hair:'#39404a', acc:'#b0bec5'}, d.state, now);
+    // hp above
+    ctx.fillStyle = '#111827'; ctx.fillRect(d.x-40, d.y-120, 80, 12);
+    ctx.fillStyle = '#ef4444'; ctx.fillRect(d.x-40, d.y-120, 80*(d.hp/d.maxHp), 12);
+    ctx.restore();
   }
 
-  // particles
-  for(let i=particles.length-1;i>=0;i--){
-    const p = particles[i]; p.life -= dt;
-    p.mesh.position.addScaledVector(p.vel, dt);
-    p.mesh.material.opacity = Math.max(0, p.life/0.6);
-    if(p.life <= 0){ scene.remove(p.mesh); particles.splice(i,1); }
+  // beam visual if recent (for slot 4)
+  if(performance.now() - AB[4].last < 260){
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    const bx = player.x + player.facing * 60;
+    ctx.fillStyle = '#88ffea';
+    ctx.fillRect(bx, player.y - 40, player.facing*380, 80);
+    ctx.restore();
   }
 
-  // status fade
-  if(statusTimer && performance.now() > statusTimer){ statusTimer = 0; statusEl.textContent = 'Ready'; }
+  // draw player (front)
+  drawCharacter(ctx, player.x, player.y, player.w, player.h, player.facing, {body:palette.body, hair:palette.hair, acc:palette.acc}, player.state, now);
 
-  renderer.render(scene, camera);
-  requestAnimationFrame(animate);
+  // draw sparks
+  for(const s of sparks){
+    ctx.fillStyle = s.col; ctx.fillRect(s.x-2, s.y-2, 4, 4);
+  }
+
+  ctx.restore();
+
+  requestAnimationFrame(loop);
 }
-requestAnimationFrame(animate);
+requestAnimationFrame(loop);
 
-/* utility: spawn initial projectiles when clicking mouse (optional) */
-canvas.addEventListener('click', ()=> {
-  // also fire primary (slot 1) on click for convenience
-  useAbility(1);
-});
+/* ---------- helper functions & initial spawn ---------- */
+function updateCount(){ document.getElementById('count').textContent = dummies.length; }
+function spawnInitial(){ resetArena(); }
+spawnInitial();
 
-/* simple on-screen cooldown updater (fills then empties) */
-function refreshCooldowns(){
-  const now = performance.now();
-  for(let s=1;s<=4;s++){
-    const el = cEls[s];
-    const ab = ABILITIES[s];
-    const remaining = Math.max(0, cdState[s] - now);
-    const pct = 1 - (remaining / ab.cool);
-    el.style.width = (pct*100) + '%';
-  }
-  requestAnimationFrame(refreshCooldowns);
+/* ---------- UI status (small transient) ---------- */
+const centerUI = document.querySelector('.center-ui');
+let statusTimer = 0;
+function setStatus(txt){
+  centerUI.textContent = txt;
+  statusTimer = performance.now() + 900;
+  setTimeout(()=>{ if(performance.now() > statusTimer) centerUI.textContent = 'STREET ARENA — Prototype'; }, 900);
 }
-requestAnimationFrame(refreshCooldowns);
 
-/* respawn helper */
-window.addEventListener('keydown', (e)=> { if(e.key.toLowerCase() === 'r'){ for(const d of dummies){ scene.remove(d.mesh);} dummies.length=0; spawnMany(5); updateDummyCount(); setStatus('Respawned'); } });
+/* ---------- spawn hook for sparks & floating damage ---------- */
+function spawnSparks(x,y,count=8){
+  spawnSparks = spawnSparksInner; // rebind to actual function body (closure fix)
+  spawnSparksInner(x,y,count);
+}
+function spawnSparksInner(x,y,count=8){
+  for(let i=0;i<count;i++){
+    sparks.push({x, y, vx:rand(-3,3), vy:rand(-6,-1), life:rand(300,900), t:0, col: `hsl(${rand(20,40)},90%,60%)`});
+  }
+}
 
-/* tiny UI updates initial */
-updateDummyCount();
-setStatus('Ready. Press 1-4 to use abilities.');
+/* ---------- initial dummy spawn implementation (uses cw) ---------- */
+function spawnDummyAt(x,y){
+  const d = {x,y,w:56,h:86,hp:70,maxHp:70,state:'idle',vel:{x:rand(-0.5,0.5),y:0},stun:0};
+  dummies.push(d); updateCount();
+}
 
-/* expose spawnMany to console for quick testing */
-window._spawnMany = spawnMany;
+/* ---------- small polish: ability slot clicks ---------- */
+for(let i=1;i<=4;i++){
+  document.getElementById('slot'+i).addEventListener('click', ()=> useAbility(i));
+}
+
+/* ---------- countdown UI for cooldown animation (already running) ---------- */
+updateCooldowns();
+
+/* expose for debugging */
+window._player = player;
+window._dummies = dummies;
+window._spawn = spawnMany;
 </script>
 </body>
 </html>
+```
