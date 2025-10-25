@@ -44,7 +44,7 @@
     .preview {
       margin-top: 30px;
       width: 100%;
-      max-width: 600px;
+      max-width: 650px;
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 8px 20px rgba(0,0,0,0.2);
@@ -52,7 +52,7 @@
       animation: fadeIn 0.5s ease;
     }
     .navbar {
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.85);
       color: #fff;
       padding: 12px;
       display: flex;
@@ -60,11 +60,12 @@
       font-size: 14px;
     }
     .hero {
-      padding: 40px 20px;
+      padding: 30px 20px;
       text-align: center;
     }
-    .hero h2 { margin: 0; font-size: 24px; }
+    .hero h2 { margin: 0; font-size: 26px; }
     .tagline { margin: 10px 0; font-style: italic; color: #555; }
+    .hero img { max-width: 220px; margin: 20px auto; display: block; }
     .cta {
       margin-top: 20px;
       display: inline-block;
@@ -75,6 +76,16 @@
       text-decoration: none;
       font-weight: bold;
     }
+    .testimonials {
+      background: #f9f9f9;
+      padding: 20px;
+      text-align: left;
+    }
+    .testimonial {
+      margin-bottom: 15px;
+      font-size: 14px;
+    }
+    .testimonial strong { display: block; margin-bottom: 4px; }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(20px); }
       to { opacity: 1; transform: translateY(0); }
@@ -114,10 +125,35 @@
       ]
     };
 
+    const images = {
+      modern: [
+        "https://img.freepik.com/premium-vector/pizza-pixel-art-style-design-illustration_698293-25.jpg?w=2000",
+        "https://www.megavoxels.com/wp-content/uploads/2025/01/Pixel-Art-Kawaii-Pizza-4.webp"
+      ],
+      cyberpunk: [
+        "https://pics.craiyon.com/2023-07-05/8a8fdf89728846ceaa7e09f7999c65de.webp"
+      ],
+      sakura: [
+        "https://img.freepik.com/premium-vector/cute-pizza-pixel-art-vector_504403-646.jpg"
+      ]
+    };
+
+    const reviews = [
+      { name: "Alex R.", text: "Best fake website I’ve ever seen. 10/10 would click again." },
+      { name: "Jamie L.", text: "I laughed so hard I forgot it wasn’t real." },
+      { name: "Taylor K.", text: "Finally, a site that understands my need for neon pizza." },
+      { name: "Morgan S.", text: "The sakura theme made me cry. Beautiful and delicious." }
+    ];
+
     function generate() {
       const name = document.getElementById('sitename').value || "My Fake Site";
       const theme = document.getElementById('theme').value;
       const tagline = jokes[theme][Math.floor(Math.random() * jokes[theme].length)];
+      const img = images[theme][Math.floor(Math.random() * images[theme].length)];
+
+      // Pick 2 random reviews
+      const shuffled = reviews.sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, 2);
 
       document.getElementById('preview').innerHTML = `
         <div class="preview">
@@ -130,7 +166,16 @@
           <div class="hero">
             <h2>${name}</h2>
             <div class="tagline">${tagline}</div>
+            <img src="${img}" alt="funny pixel art" />
             <a href="#" class="cta">Order Now 🚀</a>
+          </div>
+          <div class="testimonials">
+            ${selected.map(r => `
+              <div class="testimonial">
+                <strong>${r.name}</strong>
+                <span>"${r.text}"</span>
+              </div>
+            `).join('')}
           </div>
         </div>
       `;
