@@ -3,55 +3,165 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Pick Your Power — Fast Load</title>
+<title>Pick Your Power — Starfield + StreetFighter Pixel Customizer</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#030215;--accent:#9be7ff;--muted:#9bb0c8;}
-  html,body{height:100%;margin:0;background:var(--bg);font-family:Inter,system-ui,Roboto,Arial;color:white;-webkit-font-smoothing:antialiased;}
-  #app{position:relative;height:100vh;overflow:hidden;display:flex;align-items:center;justify-content:center;}
-  canvas#bg{position:absolute;inset:0;width:100%;height:100%;display:block;background:transparent;image-rendering:pixelated;}
-  /* Menu overlay (renders immediately) */
-  .menu{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);text-align:center;z-index:40;pointer-events:auto}
-  .title{font-family:'Press Start 2P',monospace;font-size:40px;color:var(--accent);text-shadow:0 10px 30px rgba(0,0,0,0.75);margin:0}
-  .prompt{font-family:'Press Start 2P',monospace;font-size:12px;color:var(--muted);margin-top:14px}
-  .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:60}
-  /* Customizer (hidden until ready) */
-  .customizer{position:fixed;right:28px;top:50%;transform:translateY(-50%);width:380px;padding:16px;border-radius:12px;background:rgba(255,255,255,0.03);box-shadow:0 12px 40px rgba(0,0,0,0.6);z-index:50;display:none}
+  :root{
+    --bg:#030215; --accent:#9be7ff; --muted:#9bb0c8;
+    --panel:rgba(255,255,255,0.04);
+  }
+  html,body{height:100%;margin:0;background:var(--bg);font-family:Inter,system-ui,Roboto,Arial;color:#eaf6ff;-webkit-font-smoothing:antialiased;}
+  #app{position:relative;height:100vh;overflow:hidden;}
+  /* Starfield canvas */
+  #bg{position:absolute;inset:0;width:100%;height:100%;display:block;background:transparent;}
+  /* Menu overlay */
+  .menu{
+    position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);text-align:center;z-index:10;pointer-events:auto;
+  }
+  .title{
+    font-family:'Press Start 2P',monospace;color:var(--accent);font-size:40px;letter-spacing:2px;margin:0;
+    text-shadow:0 12px 40px rgba(0,0,0,0.8);
+  }
+  .prompt{margin-top:16px;font-family:'Press Start 2P',monospace;font-size:12px;color:var(--muted)}
+  .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:20}
+  /* Customizer panel */
+  .customizer{
+    position:fixed;right:28px;top:50%;transform:translateY(-50%);width:420px;padding:16px;border-radius:12px;
+    background:linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03));box-shadow:0 12px 40px rgba(0,0,0,0.7);
+    display:none;z-index:15;backdrop-filter:blur(6px);
+  }
   .customizer.visible{display:block}
-  .preview{width:160px;height:240px;margin:8px auto;background:#071428;border-radius:10px;padding:8px;border:1px solid rgba(255,255,255,0.03)}
-  label{color:var(--muted);font-size:13px;display:block;margin-bottom:6px}
-  select,input[type="color"],input[type="range"]{width:100%;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:white}
+  .panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
   .btn{padding:8px 10px;border-radius:8px;border:none;background:linear-gradient(180deg,#1b2b3a,#0f1a24);color:var(--accent);cursor:pointer}
-  @media (max-width:900px){ .customizer{position:fixed;left:12px;right:12px;bottom:18px;top:auto;transform:none;width:auto} .title{font-size:22px} }
+  label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+  select,input[type="color"],input[type="range"]{
+    width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#eaf6ff;
+  }
+  .preview{
+    width:240px;height:360px;margin:8px auto;background:#081226;border:1px solid rgba(255,255,255,0.06);border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  canvas.pixel{image-rendering:pixelated}
+  .row{margin-top:8px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  @media (max-width:960px){
+    .customizer{position:fixed;left:12px;right:12px;top:auto;bottom:18px;transform:none;width:auto}
+    .title{font-size:24px}
+  }
 </style>
 </head>
 <body>
-  <div id="app" aria-label="Pick Your Power fast load">
+  <div id="app">
     <canvas id="bg"></canvas>
 
-    <div class="menu" id="menu" aria-hidden="false">
+    <div class="menu" id="menu">
       <div class="title">PICK YOUR POWER!</div>
       <div class="prompt">PRESS ANYWHERE TO CONTINUE</div>
     </div>
 
     <div class="flash" id="flash"></div>
 
-    <div class="customizer" id="customizer" aria-hidden="true" role="dialog" aria-label="Character customizer">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <strong style="font-size:14px">Character Customizer</strong>
-        <button id="closeCustomizer" class="btn">Close</button>
+    <div class="customizer" id="customizer" aria-label="StreetFighter pixel customizer">
+      <div class="panel-header">
+        <strong>StreetFighter Character Customizer</strong>
+        <button id="closeBtn" class="btn">Close</button>
       </div>
-      <div class="preview"><canvas id="preview" width="64" height="96" style="image-rendering:pixelated;width:160px;height:240px;display:block;margin:0 auto;"></canvas></div>
-      <label>Start State</label>
-      <select id="startState"><option value="pantsOnly">Pants only (bald)</option><option value="full">Full default</option></select>
-      <label style="margin-top:8px">Skin Color</label><input id="skinColor" type="color" value="#ffd7c4">
-      <label style="margin-top:8px">Hair Style</label>
-      <select id="hairStyle"><option value="none">None</option><option value="short">Short</option><option value="spiky">Spiky</option><option value="long">Long</option></select>
-      <label style="margin-top:8px">Hair Color</label><input id="hairColor" type="color" value="#222222">
-      <label style="margin-top:8px">Eyes</label>
-      <select id="eyesStyle"><option value="none">None</option><option value="round">Round</option><option value="sharp">Sharp</option></select>
-      <label style="margin-top:8px">Pants Color</label><input id="pantsColor" type="color" value="#2b4b7a">
-      <div style="display:flex;gap:8px;margin-top:12px">
+
+      <div class="preview">
+        <!-- Tiny pixel canvas scaled up -->
+        <canvas id="preview" class="pixel" width="96" height="96" style="width:240px;height:240px"></canvas>
+      </div>
+
+      <div class="grid">
+        <div>
+          <label>Start state</label>
+          <select id="startState">
+            <option value="pantsOnly">Pants only (bald)</option>
+            <option value="full">Full default (clothed)</option>
+          </select>
+        </div>
+        <div>
+          <label>Height</label>
+          <input id="height" type="range" min="0.9" max="1.25" step="0.01" value="1.0">
+        </div>
+      </div>
+
+      <div class="grid row">
+        <div>
+          <label>Skin</label>
+          <input id="skinColor" type="color" value="#ffd7c4">
+        </div>
+        <div>
+          <label>Pants</label>
+          <input id="pantsColor" type="color" value="#2b4b7a">
+        </div>
+      </div>
+
+      <div class="grid row">
+        <div>
+          <label>Hair style</label>
+          <select id="hairStyle">
+            <option value="none">None (bald)</option>
+            <option value="short">Short</option>
+            <option value="spiky">Spiky</option>
+            <option value="long">Long</option>
+            <option value="pony">Ponytail</option>
+          </select>
+        </div>
+        <div>
+          <label>Hair color</label>
+          <input id="hairColor" type="color" value="#222222">
+        </div>
+      </div>
+
+      <div class="grid row">
+        <div>
+          <label>Eyes</label>
+          <select id="eyesStyle">
+            <option value="none">None</option>
+            <option value="round">Round</option>
+            <option value="sharp">Sharp</option>
+            <option value="pixel">Pixel</option>
+          </select>
+        </div>
+        <div>
+          <label>Eye color</label>
+          <input id="eyesColor" type="color" value="#1b2b3a">
+        </div>
+      </div>
+
+      <div class="grid row">
+        <div>
+          <label>Gloves</label>
+          <select id="gloves">
+            <option value="none">None</option>
+            <option value="wraps">Hand wraps</option>
+            <option value="gloves">Gloves</option>
+          </select>
+        </div>
+        <div>
+          <label>Glove color</label>
+          <input id="gloveColor" type="color" value="#b03030">
+        </div>
+      </div>
+
+      <div class="grid row">
+        <div>
+          <label>Accessory</label>
+          <select id="accessory">
+            <option value="none">None</option>
+            <option value="headband">Headband</option>
+            <option value="scarf">Scarf</option>
+            <option value="mask">Mask</option>
+          </select>
+        </div>
+        <div>
+          <label>Accent color</label>
+          <input id="accentColor" type="color" value="#e83e8c">
+        </div>
+      </div>
+
+      <div class="row" style="display:flex;gap:8px;margin-top:12px">
         <button id="randomize" class="btn">Randomize</button>
         <button id="reset" class="btn">Reset</button>
         <button id="export" class="btn" style="margin-left:auto">Export</button>
@@ -60,326 +170,367 @@
   </div>
 
 <script>
-/*
- Fast-load pattern:
- - Render menu immediately (no heavy work).
- - Defer heavy scene init until user presses (or first RAF), show flash, then start full scene.
- - Initial canvas uses lightweight low-DPR placeholder rendering to be paint-fast.
- - After continue, upgrade to higher DPR, create offscreen buffers, generate stars/planets and start animation.
-*/
-
-/* ---------- Initial fast placeholder rendering (instant) ---------- */
+/* ---------- Starfield menu with mouse-parallax ---------- */
 const bg = document.getElementById('bg');
-const bgCtx = bg.getContext('2d');
-let deviceDPR = 1; // start with DPR=1 for faster raster and lower memory
-function fitPlaceholder(){
-  bg.width = Math.max(320, Math.min(window.innerWidth, 1200));
-  bg.height = Math.max(180, Math.min(window.innerHeight, 800));
-  bg.style.width = '100vw';
-  bg.style.height = '100vh';
-  bgCtx.setTransform(1,0,0,1,0,0);
-  bgCtx.imageSmoothingEnabled = true;
-  // simple soft gradient to visually fill screen immediately
-  const w = bg.width, h = bg.height;
-  const g = bgCtx.createLinearGradient(0,0,0,h);
-  g.addColorStop(0,'#020218'); g.addColorStop(1,'#000814');
-  bgCtx.fillStyle = g; bgCtx.fillRect(0,0,w,h);
-  // a few small stars drawn cheap
-  for(let i=0;i<40;i++){
-    const x = Math.random()*w, y = Math.random()*h;
-    bgCtx.fillStyle = 'rgba(255,255,255,' + (0.3 + Math.random()*0.7) + ')';
-    bgCtx.fillRect(x,y,1,1);
-  }
-}
-window.addEventListener('resize', fitPlaceholder);
-fitPlaceholder();
+const bctx = bg.getContext('2d');
+let DPR = Math.min(window.devicePixelRatio || 1, 2);
 
-/* ---------- UI elements ---------- */
+function fitBG(){
+  const w = Math.max(640, window.innerWidth);
+  const h = Math.max(360, window.innerHeight);
+  bg.width = Math.round(w * DPR);
+  bg.height = Math.round(h * DPR);
+  bg.style.width = w + 'px';
+  bg.style.height = h + 'px';
+  bctx.setTransform(DPR,0,0,DPR,0,0);
+  bctx.imageSmoothingEnabled = true;
+}
+fitBG();
+window.addEventListener('resize', fitBG);
+
+const pointer = { x: window.innerWidth/2, y: window.innerHeight/2, sx:0, sy:0 };
+window.addEventListener('mousemove', e => { pointer.x = e.clientX; pointer.y = e.clientY; });
+
+const LAYERS = [
+  {count:220, size:1, color:'#fffdf8', stars:[]},
+  {count:140, size:2, color:'#cfeaff', stars:[]},
+  {count:80,  size:3, color:'#ffd7ff', stars:[]}
+];
+function seedStars(){
+  const w = bg.width/DPR, h = bg.height/DPR;
+  LAYERS.forEach(L=>{
+    L.stars = Array.from({length:L.count}, ()=>({x:Math.random()*w, y:Math.random()*h, r:Math.random()*L.size+0.4, p:Math.random()*Math.PI*2}));
+  });
+}
+seedStars();
+
+const planets = [
+  {x:0.18, y:0.25, r:0.14, a:'#ff8a65', b:'#ce4a1f', ring:true, rc:'rgba(255,200,140,0.12)', s:0.012},
+  {x:0.78, y:0.38, r:0.18, a:'#6ad3ff', b:'#0277bd', ring:false, s:-0.006},
+  {x:0.62, y:0.72, r:0.10, a:'#b19cff', b:'#6b3fa0', ring:true, rc:'rgba(180,140,255,0.12)', s:0.016}
+];
+
+function drawMenuStarfield(t){
+  const w = bg.width/DPR, h = bg.height/DPR;
+
+  // Nebula gradient
+  const g = bctx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,'#020418'); g.addColorStop(0.3,'#06264a'); g.addColorStop(0.7,'#071a34'); g.addColorStop(1,'#000814');
+  bctx.fillStyle = g; bctx.fillRect(0,0,w,h);
+
+  // Parallax amounts
+  const nx = (pointer.x / Math.max(window.innerWidth,1) - 0.5) * 2;
+  const ny = (pointer.y / Math.max(window.innerHeight,1) - 0.5) * 2;
+  pointer.sx += (nx - pointer.sx) * 0.06;
+  pointer.sy += (ny - pointer.sy) * 0.06;
+
+  // Stars
+  for(let li=0; li<LAYERS.length; li++){
+    const L = LAYERS[li];
+    bctx.fillStyle = L.color;
+    for(const s of L.stars){
+      const px = s.x + pointer.sx * (li+1) * 24;
+      const py = s.y + pointer.sy * (li+1) * 12;
+      const tw = 0.6 + Math.sin(t*0.9 + s.p) * 0.4;
+      bctx.globalAlpha = 0.85;
+      bctx.fillRect(px, py, Math.max(1, s.r*tw), Math.max(1, s.r*tw));
+    }
+    bctx.globalAlpha = 1;
+  }
+
+  // Planets
+  planets.forEach(p=>{
+    const cx = p.x * w + Math.sin(t * p.s * 40) * 14 + pointer.sx * 60 * p.r;
+    const cy = p.y * h + Math.cos(t * p.s * 30) * 10 + pointer.sy * 30 * p.r;
+    const R = p.r * Math.min(w,h);
+    const rg = bctx.createRadialGradient(cx - R*0.28, cy - R*0.28, R*0.06, cx, cy, R);
+    rg.addColorStop(0, p.a); rg.addColorStop(1, p.b);
+    bctx.fillStyle = rg; bctx.beginPath(); bctx.arc(cx, cy, R, 0, Math.PI*2); bctx.fill();
+    if(p.ring){
+      bctx.save(); bctx.translate(cx,cy); bctx.rotate(Math.sin(t * p.s * 40) * 0.18);
+      bctx.strokeStyle = p.rc; bctx.lineWidth = Math.max(1, R*0.06);
+      bctx.beginPath(); bctx.ellipse(0,0,R*1.6,R*0.6,0,0,Math.PI*2); bctx.stroke(); bctx.restore();
+    }
+  });
+}
+
+let last = performance.now();
+function loop(now){
+  const t = (now - last)/1000; last = now;
+  drawMenuStarfield(now*0.001);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ---------- Transition: flash to customizer ---------- */
 const menu = document.getElementById('menu');
 const flash = document.getElementById('flash');
 const customizer = document.getElementById('customizer');
-const preview = document.getElementById('preview');
-const pctx = preview.getContext('2d');
-pctx.imageSmoothingEnabled = false;
 
-const startStateEl = document.getElementById('startState');
-const skinColorEl = document.getElementById('skinColor');
-const hairStyleEl = document.getElementById('hairStyle');
-const hairColorEl = document.getElementById('hairColor');
-const eyesStyleEl = document.getElementById('eyesStyle');
-const pantsColorEl = document.getElementById('pantsColor');
-const randomizeBtn = document.getElementById('randomize');
-const resetBtn = document.getElementById('reset');
-const exportBtn = document.getElementById('export');
-const closeCustomizer = document.getElementById('closeCustomizer');
-
-/* basic model for preview (starts pants only & bald) */
-const model = {
-  startState: 'pantsOnly',
-  skin: skinColorEl.value,
-  hairStyle: 'none',
-  hairColor: hairColorEl.value,
-  eyesStyle: 'none',
-  pantsColor: pantsColorEl.value,
-  height: 1.0,
-  accessory: 'none'
-};
-
-/* ---------- Preview drawing (tiny pixel art 64x96) ---------- */
-const PW = preview.width = 64, PH = preview.height = 96;
-function drawPreview(){
-  // integer pixel drawing
-  pctx.clearRect(0,0,PW,PH);
-  // background
-  pctx.fillStyle = '#071428'; pctx.fillRect(0,0,PW,PH);
-  const cx = Math.floor(PW/2);
-  const floor = PH - 12;
-  // shadow
-  pctx.fillStyle = 'rgba(0,0,0,0.35)'; pctx.fillRect(cx-12, floor-4, 24, 5);
-  // pants (always visible)
-  const pantsTop = floor - 8 - Math.round(36*0.36);
-  pctx.fillStyle = model.pantsColor; pctx.fillRect(cx-10, pantsTop, 20, 12);
-  // legs
-  pctx.fillStyle = shade(model.pantsColor, -18); pctx.fillRect(cx-10, pantsTop+12, 8, 16); pctx.fillRect(cx+2, pantsTop+12, 8, 16);
-  // torso visible only if full
-  if(model.startState !== 'pantsOnly') pctx.fillStyle = model.skin, pctx.fillRect(cx-8, pantsTop-28, 16, 28);
-  // head (always) - skin fill
-  const headY = pantsTop - 28 - 18;
-  pctx.fillStyle = model.skin; pctx.fillRect(cx-10, headY, 20, 18);
-  // bald highlight if hair none
-  if(model.hairStyle === 'none' || model.startState === 'pantsOnly'){
-    pctx.fillStyle = 'rgba(255,255,255,0.12)'; pctx.fillRect(cx-3, headY+4, 6, 2);
-  }
-  // hair if present and not pantsOnly
-  if(model.hairStyle !== 'none' && model.startState !== 'pantsOnly'){
-    pctx.fillStyle = model.hairColor;
-    if(model.hairStyle === 'short') pctx.fillRect(cx-10, headY-2, 20, 6);
-    else if(model.hairStyle === 'spiky'){ pctx.fillRect(cx-10, headY-2, 8,10); pctx.fillRect(cx+2, headY-6,8,14); pctx.fillRect(cx+12, headY-2,8,10); }
-    else if(model.hairStyle === 'long'){ pctx.fillRect(cx-10, headY-2, 20,6); pctx.fillRect(cx-6, headY+16, 12, 18); }
-  }
-  // eyes if present and not pantsOnly
-  if(model.eyesStyle !== 'none' && model.startState !== 'pantsOnly'){
-    pctx.fillStyle = '#000';
-    if(model.eyesStyle === 'round'){ pctx.fillRect(cx-6, headY+6, 4,4); pctx.fillRect(cx+2, headY+6,4,4); pctx.fillStyle='#fff'; pctx.fillRect(cx-5, headY+7,1,1); pctx.fillRect(cx+3, headY+7,1,1); }
-    else if(model.eyesStyle === 'sharp'){ pctx.fillRect(cx-7, headY+9,10,2); pctx.fillRect(cx+0, headY+9,10,2); }
-  }
-  // mouth
-  pctx.fillStyle = 'rgba(0,0,0,0.6)'; pctx.fillRect(cx-3, headY+14, 6, 1);
-  // accessory (simple)
-  if(model.accessory === 'glasses'){ pctx.strokeStyle='#000'; pctx.strokeRect(cx-9, headY+6,5,4); pctx.strokeRect(cx+4, headY+6,5,4); pctx.beginPath(); pctx.moveTo(cx-4, headY+8); pctx.lineTo(cx+4, headY+8); pctx.stroke(); }
-}
-
-/* shade helper */
-function shade(hex, pct){
-  const f = hex.replace('#',''); const R=parseInt(f.substring(0,2),16), G=parseInt(f.substring(2,4),16), B=parseInt(f.substring(4,6),16);
-  const t = pct/100; const newR=Math.round(R+((t>0?255:0)-R)*Math.abs(t)); const newG=Math.round(G+((t>0?255:0)-G)*Math.abs(t)); const newB=Math.round(B+((t>0?255:0)-B)*Math.abs(t));
-  return `rgb(${newR},${newG},${newB})`;
-}
-
-/* initial preview draw (fast) */
-function pullUIToModel(){
-  model.startState = startStateEl.value;
-  model.skin = skinColorEl.value;
-  model.hairStyle = hairStyleEl.value;
-  model.hairColor = hairColorEl.value;
-  model.eyesStyle = eyesStyleEl.value;
-  model.pantsColor = pantsColorEl.value;
-  drawPreview();
-}
-[startStateEl, skinColorEl, hairStyleEl, hairColorEl, eyesStyleEl, pantsColorEl].forEach(el=>{
-  el.addEventListener('input', pullUIToModel); el.addEventListener('change', pullUIToModel);
-});
-randomizeBtn.addEventListener('click', ()=> {
-  hairStyleEl.value = ['none','short','spiky','long'][Math.floor(Math.random()*4)];
-  hairColorEl.value = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
-  eyesStyleEl.value = ['none','round','sharp'][Math.floor(Math.random()*3)];
-  pantsColorEl.value = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
-  pullUIToModel();
-});
-resetBtn.addEventListener('click', ()=> {
-  startStateEl.value = 'pantsOnly'; skinColorEl.value = '#ffd7c4'; hairStyleEl.value = 'none'; hairColorEl.value = '#222222';
-  eyesStyleEl.value = 'none'; pantsColorEl.value = '#2b4b7a'; pullUIToModel();
-});
-exportBtn.addEventListener('click', ()=> {
-  const data = preview.toDataURL('image/png'); const a = document.createElement('a'); a.href = data; a.download = 'character.png'; a.click();
-});
-closeCustomizer.addEventListener('click', ()=> customizer.classList.remove('visible'));
-
-/* draw initial preview immediately (fast) */
-pullUIToModel();
-
-/* ---------- Deferred heavy init (starts after user presses) ---------- */
-let heavyStarted = false;
-function startHeavyScene(){
-  if(heavyStarted) return;
-  heavyStarted = true;
-
-  // show flash
+function continueAction(){
   flash.style.transition = 'none';
   flash.style.opacity = '1';
-  requestAnimationFrame(()=> { flash.style.transition = 'opacity 520ms cubic-bezier(.2,.9,0,1)'; flash.style.opacity = '0'; });
+  requestAnimationFrame(()=> {
+    flash.style.transition = 'opacity 520ms cubic-bezier(.2,.9,0,1)';
+    flash.style.opacity = '0';
+  });
+  setTimeout(()=> { menu.style.display = 'none'; customizer.classList.add('visible'); }, 160);
+  window.removeEventListener('pointerdown', continueAction);
+  window.removeEventListener('touchstart', continueAction);
+}
+window.addEventListener('pointerdown', continueAction, {passive:true});
+window.addEventListener('touchstart', continueAction, {passive:true});
 
-  // after short delay upgrade canvas DPR and start full animation + show customizer
-  setTimeout(()=> {
-    // upgrade DPR to devicePixelRatio (but clamp to avoid huge memory)
-    deviceDPR = Math.min(window.devicePixelRatio || 1, 2);
-    // re-fit bg canvas at higher DPR and create offscreen buffer for starfield
-    const fullW = Math.max(640, Math.round(window.innerWidth));
-    const fullH = Math.max(360, Math.round(window.innerHeight));
-    bg.width = Math.round(fullW * deviceDPR);
-    bg.height = Math.round(fullH * deviceDPR);
-    bg.style.width = fullW + 'px';
-    bg.style.height = fullH + 'px';
-    bgCtx.setTransform(deviceDPR,0,0,deviceDPR,0,0);
-    bgCtx.imageSmoothingEnabled = true;
+/* ---------- StreetFighter-style pixel character ---------- */
+/* Design notes:
+   - Chibi-but-fighter proportions: big head, broad torso, defined arms, stance width.
+   - Starts bald + pants only (no top), optionally add gloves/wraps/headband etc.
+   - 96x96 canvas scaled up with image-rendering: pixelated for crisp pixels.
+*/
+const pv = document.getElementById('preview');
+const pctx = pv.getContext('2d'); pctx.imageSmoothingEnabled = false;
+const PW = pv.width, PH = pv.height;
 
-    // create offscreen buffer sized moderately to keep performance
-    const off = document.createElement('canvas');
-    const offCtx = off.getContext('2d');
-    const offW = Math.max(360, Math.min(900, Math.round(fullW * 0.6)));
-    off.width = offW;
-    off.height = Math.round(offW * 9 / 16);
-    offCtx.imageSmoothingEnabled = true;
+const ui = {
+  startState: document.getElementById('startState'),
+  height: document.getElementById('height'),
+  skin: document.getElementById('skinColor'),
+  pants: document.getElementById('pantsColor'),
+  hairStyle: document.getElementById('hairStyle'),
+  hairColor: document.getElementById('hairColor'),
+  eyesStyle: document.getElementById('eyesStyle'),
+  eyesColor: document.getElementById('eyesColor'),
+  gloves: document.getElementById('gloves'),
+  gloveColor: document.getElementById('gloveColor'),
+  accessory: document.getElementById('accessory'),
+  accentColor: document.getElementById('accentColor'),
+  randomize: document.getElementById('randomize'),
+  reset: document.getElementById('reset'),
+  export: document.getElementById('export'),
+  close: document.getElementById('closeBtn')
+};
 
-    // generate lightweight star layers (fewer counts initially)
-    const starLayers = [
-      {count:180, color:'#fffdf8', size:0.9, stars:[]},
-      {count:110, color:'#cfeaff', size:1.6, stars:[]},
-      {count:60,  color:'#ffd7ff', size:2.6, stars:[]}
-    ];
-    starLayers.forEach(L=>{ for(let i=0;i<L.count;i++) L.stars.push({x:Math.random(), y:Math.random(), r:L.size*(0.6+Math.random()*0.9), phase:Math.random()*Math.PI*2}) });
+const model = {
+  startState: 'pantsOnly',
+  height: 1.0,
+  skin: '#ffd7c4',
+  pants: '#2b4b7a',
+  hairStyle: 'none',
+  hairColor: '#222222',
+  eyesStyle: 'none',
+  eyesColor: '#1b2b3a',
+  gloves: 'none',
+  gloveColor: '#b03030',
+  accessory: 'none',
+  accentColor: '#e83e8c'
+};
 
-    // planets
-    const planets = [
-      {x:0.18,y:0.22,r:0.14, colorA:'#ff8a65', colorB:'#ce4a1f', ring:true, ringColor:'rgba(255,200,140,0.12)', speed:0.012},
-      {x:0.78,y:0.36,r:0.22, colorA:'#6ad3ff', colorB:'#0277bd', ring:false, speed:-0.006}
-    ];
-
-    // meteors queue
-    const meteors = [];
-    function spawnMeteor(){ meteors.push({ x: Math.random()*off.width, y: Math.random()*off.height*0.36, vx:200+Math.random()*400, vy:40+Math.random()*140, life:600+Math.random()*1400, t:0 }); }
-    for(let i=0;i<3;i++) spawnMeteor();
-
-    // pointer smoothing for parallax
-    const pointer = { x: window.innerWidth/2, y: window.innerHeight/2, sx:0, sy:0, tx:0, ty:0 };
-    window.addEventListener('mousemove', e => { pointer.x = e.clientX; pointer.y = e.clientY; });
-
-    // animation loop
-    let last = performance.now();
-    function loop(now){
-      const dt = Math.min((now - last)/1000, 0.033);
-      last = now;
-
-      // normalized pointer targets
-      const nx = (pointer.x / Math.max(window.innerWidth,1) - 0.5) * 2;
-      const ny = (pointer.y / Math.max(window.innerHeight,1) - 0.5) * 2;
-      pointer.tx = Math.max(-1, Math.min(1, nx));
-      pointer.ty = Math.max(-1, Math.min(1, ny));
-      pointer.sx += (pointer.tx - pointer.sx) * Math.min(1, 6 * dt);
-      pointer.sy += (pointer.ty - pointer.sy) * Math.min(1, 6 * dt);
-
-      // draw offscreen (nebula)
-      const t = now * 0.001;
-      const ow = off.width, oh = off.height;
-      const g = offCtx.createLinearGradient(0,0,0,oh);
-      g.addColorStop(0,'#020418'); g.addColorStop(0.25,'#06264a'); g.addColorStop(0.6,'#071a34'); g.addColorStop(1,'#000814');
-      offCtx.fillStyle = g; offCtx.fillRect(0,0,ow,oh);
-
-      // moving nebula blobs
-      offCtx.globalCompositeOperation = 'lighter';
-      for(let i=0;i<4;i++){
-        const bx = (Math.sin(t*0.2 + i*1.7) * 0.5 + 0.5) * ow + pointer.sx * (i-2) * 40;
-        const by = (Math.cos(t*0.13 + i*2.3) * 0.5 + 0.5) * oh * 0.6 + pointer.sy * (i-2) * 24;
-        const rad = (0.12 + i*0.05) * Math.min(ow,oh);
-        const grad = offCtx.createRadialGradient(bx,by,rad*0.12,bx,by,rad);
-        grad.addColorStop(0, i%2===0 ? 'rgba(120,200,255,0.06)' : 'rgba(220,140,255,0.04)');
-        grad.addColorStop(1,'rgba(0,0,0,0)');
-        offCtx.fillStyle = grad; offCtx.fillRect(bx-rad,by-rad,rad*2,rad*2);
-      }
-      offCtx.globalCompositeOperation = 'source-over';
-
-      // stars (parallax)
-      for(let li=0;li<starLayers.length;li++){
-        const L = starLayers[li];
-        offCtx.globalAlpha = 1;
-        offCtx.fillStyle = L.color;
-        for(const s of L.stars){
-          const px = (s.x * ow) + pointer.sx * (li+1) * 12;
-          const py = (s.y * oh) + pointer.sy * (li+1) * 8;
-          const tw = 0.7 + Math.sin(t * (s.phase*0.4 + 1.2)) * 0.4;
-          offCtx.beginPath(); offCtx.arc(px, py, Math.max(0.3, s.r * tw), 0, Math.PI*2); offCtx.fill();
-        }
-      }
-
-      // planets
-      for(const p of planets){
-        const cx = p.x * ow + Math.sin(t * p.speed * 40) * 14 + pointer.sx * 40 * p.r;
-        const cy = p.y * oh + Math.cos(t * p.speed * 30) * 10 + pointer.sy * 20 * p.r;
-        const radius = p.r * Math.min(ow,oh);
-        const grad = offCtx.createRadialGradient(cx - radius*0.28, cy - radius*0.28, radius*0.06, cx, cy, radius);
-        grad.addColorStop(0, p.colorA); grad.addColorStop(1, p.colorB);
-        offCtx.fillStyle = grad; offCtx.beginPath(); offCtx.arc(cx, cy, radius, 0, Math.PI*2); offCtx.fill();
-        if(p.ring){
-          offCtx.save(); offCtx.translate(cx,cy); offCtx.rotate(Math.sin(t * p.speed * 40) * 0.18);
-          offCtx.strokeStyle = p.ringColor; offCtx.lineWidth = Math.max(1, radius*0.06);
-          offCtx.beginPath(); offCtx.ellipse(0,0,radius*1.6,radius*0.6,0,0,Math.PI*2); offCtx.stroke(); offCtx.restore();
-        }
-      }
-
-      // meteors
-      for(let i=meteors.length-1;i>=0;i--){
-        const m = meteors[i];
-        m.t += dt*1000; m.x += m.vx * dt; m.y += m.vy * dt;
-        const px = m.x + pointer.sx * 30; const py = m.y + pointer.sy * 12;
-        const len = Math.max(8, m.vx * 0.02);
-        offCtx.strokeStyle = 'rgba(255,255,255,0.9)'; offCtx.lineWidth = 1;
-        offCtx.beginPath(); offCtx.moveTo(px,py); offCtx.lineTo(px - len, py - len*0.28); offCtx.stroke();
-        if(m.t > m.life) meteors.splice(i,1);
-      }
-      if(Math.random() < 0.003) spawnMeteor();
-
-      // final upscale: draw offscreen to visible canvas (fill full bg)
-      bgCtx.clearRect(0,0,bg.width/deviceDPR,bg.height/deviceDPR);
-      bgCtx.imageSmoothingEnabled = true;
-      bgCtx.drawImage(off, 0, 0, off.width, off.height, 0, 0, bg.width/deviceDPR, bg.height/deviceDPR);
-
-      requestAnimationFrame(loop);
-    }
-    requestAnimationFrame(loop);
-
-    // show customizer after heavy init started
-    customizer.classList.add('visible');
-    customizer.setAttribute('aria-hidden','false');
-  }, 220);
+function shade(hex, pct){
+  const f = hex.replace('#','');
+  const R = parseInt(f.substring(0,2),16), G = parseInt(f.substring(2,4),16), B = parseInt(f.substring(4,6),16);
+  const t = pct/100;
+  const nr = Math.round(R + ((t>0?255:0) - R) * Math.abs(t));
+  const ng = Math.round(G + ((t>0?255:0) - G) * Math.abs(t));
+  const nb = Math.round(B + ((t>0?255:0) - B) * Math.abs(t));
+  return `rgb(${nr},${ng},${nb})`;
 }
 
-/* one-time click handler to start heavy init (also supports touch) */
-function onFirstInteraction(){
-  startHeavyScene();
-  window.removeEventListener('pointerdown', onFirstInteraction);
-  window.removeEventListener('touchstart', onFirstInteraction);
-  // hide the menu visually (menu remains removed after flash)
-  menu.style.display = 'none';
-}
-window.addEventListener('pointerdown', onFirstInteraction, {passive:true});
-window.addEventListener('touchstart', onFirstInteraction, {passive:true});
-
-/* small helpers to spawn meteors inside heavy init closure */
-function spawnMeteor(){ /* defined inside heavy init for closure */ }
-
-/* ---------- Ensure preview and UI work immediately (fast) ---------- */
-function initialPreviewQuickDraw(){
-  // draw a very small pixel preview quickly (bald + pants)
+function drawFighter(){
   pctx.clearRect(0,0,PW,PH);
-  pctx.fillStyle = '#071428'; pctx.fillRect(0,0,PW,PH);
-  const cx = Math.floor(PW/2); const floor = PH-12;
-  pctx.fillStyle = pantsColorEl.value; pctx.fillRect(cx-10, floor-8-12, 20, 12);
-  pctx.fillStyle = '#000'; pctx.fillRect(cx-3, floor-2, 6, 2);
-}
-initialPreviewQuickDraw();
+  // backdrop for contrast
+  pctx.fillStyle = '#091328';
+  pctx.fillRect(0,0,PW,PH);
 
-/* keep UI responsive; expose model for debugging */
-window._fastLoadModel = model;
+  const cx = Math.floor(PW/2);
+  const floor = PH - 10;
+  const H = model.height;
+
+  // stance offsets (StreetFighter vibe: wider legs, arms out)
+  const torsoW = Math.round(26 * H);
+  const torsoH = Math.round(30 * H);
+  const headW = Math.round(24 * H);
+  const headH = Math.round(20 * H);
+
+  // Shadow
+  pctx.fillStyle = 'rgba(0,0,0,0.35)';
+  pctx.fillRect(cx-18, floor-3, 36, 4);
+
+  // Pants (always visible)
+  const pantsTop = floor - Math.round(12 * H) - Math.round(torsoH * (model.startState==='pantsOnly' ? 0.0 : 0.7));
+  pctx.fillStyle = model.pants;
+  pctx.fillRect(cx - Math.round(torsoW/2), pantsTop, torsoW, Math.round(12 * H));
+
+  // Legs (blocky, fighter stance)
+  pctx.fillStyle = shade(model.pants, -18);
+  pctx.fillRect(cx - Math.round(torsoW/2), pantsTop + Math.round(12*H), Math.round(torsoW*0.45), Math.round(14*H));
+  pctx.fillRect(cx + Math.round(torsoW*0.05), pantsTop + Math.round(12*H), Math.round(torsoW*0.45), Math.round(14*H));
+
+  // Torso (skin) only if full mode
+  if(model.startState !== 'pantsOnly'){
+    const torsoTop = pantsTop - torsoH;
+    pctx.fillStyle = model.skin;
+    pctx.fillRect(cx - Math.round(torsoW/2), torsoTop, torsoW, torsoH);
+  }
+
+  // Arms (fighter ready pose)
+  // Left arm (raised)
+  const armW = Math.round(8 * H), armH = Math.round(14 * H);
+  const torsoTop = pantsTop - (model.startState==='pantsOnly' ? 0 : torsoH);
+  pctx.fillStyle = model.skin;
+  // Attach arms even in pantsOnly to keep fighter silhouette
+  pctx.fillRect(cx - Math.round(torsoW/2) - armW + 2, torsoTop + Math.round(6 * H), armW, armH);
+  // Right arm (forward)
+  pctx.fillRect(cx + Math.round(torsoW/2) - 2, torsoTop + Math.round(4 * H), armW, armH);
+
+  // Gloves / wraps
+  if(model.gloves !== 'none'){
+    pctx.fillStyle = model.gloveColor;
+    // left glove block
+    pctx.fillRect(cx - Math.round(torsoW/2) - armW + 2, torsoTop + Math.round(6*H), armW, Math.round(6*H));
+    // right glove block
+    pctx.fillRect(cx + Math.round(torsoW/2) - 2, torsoTop + Math.round(4*H), armW, Math.round(6*H));
+    if(model.gloves === 'wraps'){
+      pctx.fillStyle = shade(model.gloveColor, 30);
+      pctx.fillRect(cx - Math.round(torsoW/2) - armW + 2, torsoTop + Math.round(10*H), armW, 2);
+      pctx.fillRect(cx + Math.round(torsoW/2) - 2, torsoTop + Math.round(8*H), armW, 2);
+    }
+  }
+
+  // Head (always)
+  const headY = torsoTop - headH - 2;
+  pctx.fillStyle = model.skin;
+  pctx.fillRect(cx - Math.round(headW/2), headY, headW, headH);
+
+  // Hair
+  if(model.hairStyle !== 'none' && !(model.startState==='pantsOnly')){
+    pctx.fillStyle = model.hairColor;
+    if(model.hairStyle === 'short'){
+      pctx.fillRect(cx - Math.round(headW/2), headY - 2, headW, 6);
+    } else if(model.hairStyle === 'spiky'){
+      pctx.fillRect(cx - Math.round(headW/2), headY - 2, headW, 4);
+      pctx.fillRect(cx - 8, headY - 8, 6, 8);
+      pctx.fillRect(cx - 1, headY - 10, 6, 10);
+      pctx.fillRect(cx + 6, headY - 8, 6, 8);
+    } else if(model.hairStyle === 'long'){
+      pctx.fillRect(cx - Math.round(headW/2), headY - 2, headW, 6);
+      pctx.fillRect(cx - 6, headY + headH - 2, 12, Math.round(18 * H));
+    } else if(model.hairStyle === 'pony'){
+      pctx.fillRect(cx - Math.round(headW/2), headY - 2, headW, 6);
+      pctx.fillRect(cx + Math.round(headW/2) - 4, headY + 6, 6, Math.round(16 * H));
+    }
+  } else {
+    // Bald highlight
+    pctx.fillStyle = 'rgba(255,255,255,0.12)'; pctx.fillRect(cx - 4, headY + 4, 8, 2);
+  }
+
+  // Eyes
+  if(model.eyesStyle !== 'none' && !(model.startState==='pantsOnly')){
+    pctx.fillStyle = model.eyesColor;
+    if(model.eyesStyle === 'round'){
+      pctx.fillRect(cx - 6, headY + 6, 4, 4);
+      pctx.fillRect(cx + 2, headY + 6, 4, 4);
+      pctx.fillStyle = '#fff'; pctx.fillRect(cx - 5, headY + 7, 1, 1); pctx.fillRect(cx + 3, headY + 7, 1, 1);
+    } else if(model.eyesStyle === 'sharp'){
+      pctx.fillRect(cx - 7, headY + 8, 10, 2);
+      pctx.fillRect(cx + 0, headY + 8, 10, 2);
+    } else if(model.eyesStyle === 'pixel'){
+      pctx.fillRect(cx - 7, headY + 6, 3, 3);
+      pctx.fillRect(cx + 4, headY + 6, 3, 3);
+    }
+  }
+
+  // Mouth (neutral)
+  pctx.fillStyle = 'rgba(0,0,0,0.6)';
+  pctx.fillRect(cx - 3, headY + headH - 4, 6, 1);
+
+  // Accessories (fighter flair)
+  if(model.accessory === 'headband'){
+    pctx.fillStyle = model.accentColor;
+    pctx.fillRect(cx - Math.round(headW/2), headY + 2, headW, 2);
+    // trailing band
+    pctx.fillRect(cx + Math.round(headW/2) - 2, headY + 4, 10, 2);
+  } else if(model.accessory === 'scarf'){
+    pctx.fillStyle = model.accentColor;
+    pctx.fillRect(cx - Math.round(torsoW/2), torsoTop + 2, torsoW, 4);
+  } else if(model.accessory === 'mask'){
+    pctx.fillStyle = '#222';
+    pctx.fillRect(cx - Math.round(headW/2) + 2, headY + 10, headW - 4, 6);
+  }
+
+  // Subtle outlines for crispness
+  pctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  pctx.strokeRect(cx - Math.round(headW/2), headY, headW, headH);
+  pctx.strokeRect(cx - Math.round(torsoW/2), pantsTop, torsoW, Math.round(12*H));
+}
+
+function syncModel(){
+  model.startState = ui.startState.value;
+  model.height = parseFloat(ui.height.value);
+  model.skin = ui.skin.value;
+  model.pants = ui.pants.value;
+  model.hairStyle = ui.hairStyle.value;
+  model.hairColor = ui.hairColor.value;
+  model.eyesStyle = ui.eyesStyle.value;
+  model.eyesColor = ui.eyesColor.value;
+  model.gloves = ui.gloves.value;
+  model.gloveColor = ui.gloveColor.value;
+  model.accessory = ui.accessory.value;
+  model.accentColor = ui.accentColor.value;
+
+  // Enforce bald + no eyes when starting pantsOnly until user changes
+  if(model.startState === 'pantsOnly'){
+    model.hairStyle = 'none';
+    ui.hairStyle.value = 'none';
+    model.eyesStyle = 'none';
+    ui.eyesStyle.value = 'none';
+  }
+  drawFighter();
+}
+
+['change','input'].forEach(evt=>{
+  [ui.startState, ui.height, ui.skin, ui.pants, ui.hairStyle, ui.hairColor, ui.eyesStyle, ui.eyesColor, ui.gloves, ui.gloveColor, ui.accessory, ui.accentColor]
+    .forEach(el=> el.addEventListener(evt, syncModel));
+});
+
+ui.randomize.addEventListener('click', ()=>{
+  ui.hairStyle.value = ['none','short','spiky','long','pony'][Math.floor(Math.random()*5)];
+  ui.hairColor.value = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
+  ui.eyesStyle.value = ['none','round','sharp','pixel'][Math.floor(Math.random()*4)];
+  ui.eyesColor.value = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
+  ui.pants.value = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
+  ui.gloves.value = ['none','wraps','gloves'][Math.floor(Math.random()*3)];
+  ui.gloveColor.value = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
+  ui.accessory.value = ['none','headband','scarf','mask'][Math.floor(Math.random()*4)];
+  ui.accentColor.value = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
+  ui.height.value = (0.9 + Math.random()*0.35).toFixed(2);
+  syncModel();
+});
+
+ui.reset.addEventListener('click', ()=>{
+  ui.startState.value = 'pantsOnly';
+  ui.height.value = 1.0;
+  ui.skin.value = '#ffd7c4';
+  ui.pants.value = '#2b4b7a';
+  ui.hairStyle.value = 'none';
+  ui.hairColor.value = '#222222';
+  ui.eyesStyle.value = 'none';
+  ui.eyesColor.value = '#1b2b3a';
+  ui.gloves.value = 'none';
+  ui.gloveColor.value = '#b03030';
+  ui.accessory.value = 'none';
+  ui.accentColor.value = '#e83e8c';
+  syncModel();
+});
+
+ui.export.addEventListener('click', ()=>{
+  const url = pv.toDataURL('image/png');
+  const a = document.createElement('a'); a.href = url; a.download = 'streetfighter_pixel.png'; a.click();
+});
+
+ui.close.addEventListener('click', ()=> customizer.classList.remove('visible'));
+
+/* Initial draw */
+syncModel();
 </script>
 </body>
 </html>
