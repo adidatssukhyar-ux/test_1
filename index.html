@@ -2,17 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Voyager Stylized Model</title>
+  <title>Voyager with Camera Control</title>
   <style>
     body { margin: 0; overflow: hidden; background: black; }
   </style>
 </head>
 <body>
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
   <script>
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 2000);
-    camera.position.z = 120;
+    camera.position.set(0, 30, 120);
 
     const renderer = new THREE.WebGLRenderer({antialias:true});
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -24,13 +25,13 @@
     point.position.set(100,100,100);
     scene.add(point);
 
-    // Voyager body (bus)
+    // Voyager body
     const bodyGeo = new THREE.BoxGeometry(8,6,6);
     const bodyMat = new THREE.MeshStandardMaterial({ color: 0x6688ff });
     const body = new THREE.Mesh(bodyGeo, bodyMat);
     scene.add(body);
 
-    // High-gain antenna dish
+    // Dish
     const dishGeo = new THREE.CylinderGeometry(0, 20, 6, 48, 1, true);
     const dishMat = new THREE.MeshStandardMaterial({ color: 0xffffcc, side: THREE.DoubleSide });
     const dish = new THREE.Mesh(dishGeo, dishMat);
@@ -38,20 +39,7 @@
     dish.position.set(18,0,0);
     body.add(dish);
 
-    // Dish support struts
-    function makeStrut(angle){
-      const geo = new THREE.CylinderGeometry(0.2,0.2,10,6);
-      const mat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-      const strut = new THREE.Mesh(geo, mat);
-      strut.position.set(12, Math.sin(angle)*5, Math.cos(angle)*5);
-      strut.rotation.z = angle;
-      return strut;
-    }
-    body.add(makeStrut(0));
-    body.add(makeStrut(Math.PI/3));
-    body.add(makeStrut(-Math.PI/3));
-
-    // Magnetometer boom (long rod)
+    // Boom
     const boomGeo = new THREE.CylinderGeometry(0.2,0.2,40,8);
     const boomMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
     const boom = new THREE.Mesh(boomGeo, boomMat);
@@ -59,15 +47,7 @@
     boom.position.set(-30,0,0);
     body.add(boom);
 
-    // Science boom angled
-    const sciGeo = new THREE.CylinderGeometry(0.15,0.15,15,8);
-    const sciMat = new THREE.MeshStandardMaterial({ color: 0xffaa00 });
-    const sci = new THREE.Mesh(sciGeo, sciMat);
-    sci.rotation.z = Math.PI/4;
-    sci.position.set(-6,8,0);
-    body.add(sci);
-
-    // Golden record plate
+    // Golden record
     const recordGeo = new THREE.CircleGeometry(2,32);
     const recordMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness:0.8, roughness:0.3 });
     const record = new THREE.Mesh(recordGeo, recordMat);
@@ -91,11 +71,25 @@
     const stars = new THREE.Points(starGeo, starMat);
     scene.add(stars);
 
+    // OrbitControls
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.enableZoom = true;
+
+    // Change mouse button mapping: right-click rotates
+    controls.mouseButtons = {
+      LEFT: THREE.MOUSE.PAN,
+      MIDDLE: THREE.MOUSE.DOLLY,
+      RIGHT: THREE.MOUSE.ROTATE
+    };
+
     // Animate
     function animate(){
       requestAnimationFrame(animate);
       body.rotation.y += 0.002;
       body.rotation.x += 0.001;
+      controls.update();
       renderer.render(scene,camera);
     }
     animate();
