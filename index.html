@@ -1,87 +1,68 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="utf-8">
-<title>Code‑Only Pixel Fighter</title>
-<style>
-  body { margin:0; background:#000; font-family:'Press Start 2P',monospace; color:#9be7ff; }
-  #bg { position:absolute; inset:0; width:100%; height:100%; }
-  .menu { position:absolute; left:50%; top:40%; transform:translate(-50%,-50%); text-align:center; z-index:10 }
-  .title { font-size:32px; text-shadow:0 0 12px #000 }
-  .prompt { font-size:12px; color:#9bb0c8; margin-top:12px }
-  .flash { position:absolute; inset:0; background:#fff; opacity:0; z-index:20; pointer-events:none }
-  .customizer { display:none; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#000 }
-  canvas.pixel { image-rendering:pixelated; width:160px; height:240px; }
-</style>
+  <meta charset="UTF-8">
+  <title>Fake Website Maker</title>
+  <style>
+    body { font-family: 'Press Start 2P', monospace; text-align: center; background: #111; color: #fff; }
+    .preview { margin-top: 20px; padding: 20px; border: 3px dashed #fff; }
+    .theme-retro { background: linear-gradient(45deg, #ff0080, #7928ca); }
+    .theme-corporate { background: #f0f0f0; color: #222; font-family: Arial, sans-serif; }
+    .theme-sakura { background: pink url('https://i.imgur.com/3ZQ3Z5L.png') repeat; color: #222; }
+    h1 { font-size: 2em; margin-bottom: 10px; }
+    .tagline { font-style: italic; margin: 10px 0; }
+    .nav { margin: 15px 0; }
+    .nav a { margin: 0 10px; text-decoration: none; color: inherit; }
+  </style>
 </head>
 <body>
-<canvas id="bg"></canvas>
-<div class="menu" id="menu">
-  <div class="title">PICK YOUR POWER!</div>
-  <div class="prompt">PRESS ANYWHERE TO CONTINUE</div>
-</div>
-<div class="flash" id="flash"></div>
-<div class="customizer" id="customizer">
-  <canvas id="fighter" class="pixel" width="16" height="24"></canvas>
-</div>
+  <h1>Fake Website Maker</h1>
+  <input id="sitename" placeholder="Enter site name..." />
+  <select id="theme">
+    <option value="retro">Retro Arcade</option>
+    <option value="corporate">Corporate Serious</option>
+    <option value="sakura">Romantic Sakura</option>
+  </select>
+  <button onclick="generate()">Generate!</button>
 
-<script>
-/* --- Starfield menu --- */
-const bg=document.getElementById('bg'), ctx=bg.getContext('2d');
-function fit(){ bg.width=innerWidth; bg.height=innerHeight; }
-fit(); addEventListener('resize',fit);
-const stars=Array.from({length:200},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*2+1}));
-const pointer={x:innerWidth/2,y:innerHeight/2,sx:0,sy:0};
-addEventListener('mousemove',e=>{pointer.x=e.clientX;pointer.y=e.clientY;});
-function loop(){
-  ctx.fillStyle="#000814"; ctx.fillRect(0,0,innerWidth,innerHeight);
-  const nx=(pointer.x/innerWidth-0.5)*2, ny=(pointer.y/innerHeight-0.5)*2;
-  pointer.sx+=(nx-pointer.sx)*0.05; pointer.sy+=(ny-pointer.sy)*0.05;
-  stars.forEach((s,i)=>{
-    ctx.fillStyle="#fff";
-    ctx.fillRect(s.x+pointer.sx*(i%3), s.y+pointer.sy*(i%3), s.r, s.r);
-  });
-  requestAnimationFrame(loop);
-}
-loop();
+  <div id="preview" class="preview"></div>
 
-/* --- Transition --- */
-const menu=document.getElementById('menu');
-const flash=document.getElementById('flash');
-const customizer=document.getElementById('customizer');
-function continueAction(){
-  flash.style.transition='none'; flash.style.opacity='1';
-  requestAnimationFrame(()=>{flash.style.transition='opacity 500ms'; flash.style.opacity='0';});
-  setTimeout(()=>{menu.style.display='none'; customizer.style.display='flex'; drawFighter();},200);
-  removeEventListener('pointerdown',continueAction);
-}
-addEventListener('pointerdown',continueAction);
+  <script>
+    const jokes = {
+      retro: [
+        "Serving polygons since 1999!",
+        "Now with 8-bit flavor!",
+        "Powered by dial-up dreams."
+      ],
+      corporate: [
+        "Synergizing your pizza solutions.",
+        "Maximizing shareholder toppings.",
+        "Our mission: deliver value (and crust)."
+      ],
+      sakura: [
+        "Blossoms fall, but our pizza is eternal.",
+        "A taste as fleeting as spring.",
+        "Mount Fuji approves this slice."
+      ]
+    };
 
-/* --- Code‑only pixel fighter --- */
-const f=document.getElementById('fighter'), fctx=f.getContext('2d');
-function drawFighter(){
-  fctx.clearRect(0,0,f.width,f.height);
-  // Define sprite as 2D array of colors (null = transparent)
-  const skin="#ffd7c4", pants="#2b4b7a", hair="#222", eyes="#000";
-  const sprite=[
-    // head
-    [null,null,skin,skin,skin,skin,null,null,null,null,null,null,null,null,null,null],
-    [null,skin,skin,eyes,eyes,skin,skin,null,null,null,null,null,null,null,null,null],
-    [null,skin,skin,skin,skin,skin,skin,null,null,null,null,null,null,null,null,null],
-    // torso
-    [null,skin,skin,skin,skin,skin,skin,null,null,null,null,null,null,null,null,null],
-    [null,skin,skin,skin,skin,skin,skin,null,null,null,null,null,null,null,null,null],
-    // pants
-    [null,pants,pants,pants,pants,pants,pants,null,null,null,null,null,null,null,null,null],
-    [null,pants,null,null,null,null,pants,null,null,null,null,null,null,null,null,null],
-    // legs
-    [null,pants,null,null,null,null,pants,null,null,null,null,null,null,null,null,null],
-    [null,pants,null,null,null,null,pants,null,null,null,null,null,null,null,null,null],
-    // feet
-    [null,"#333",null,null,null,null,"#333",null,null,null,null,null,null,null,null,null],
-  ];
-  sprite.forEach((row,y)=>row.forEach((col,x)=>{ if(col){ fctx.fillStyle=col; fctx.fillRect(x,y,1,1); } }));
-}
-</script>
+    function generate() {
+      const name = document.getElementById('sitename').value || "My Fake Site";
+      const theme = document.getElementById('theme').value;
+      const tagline = jokes[theme][Math.floor(Math.random() * jokes[theme].length)];
+
+      document.getElementById('preview').className = "preview theme-" + theme;
+      document.getElementById('preview').innerHTML = `
+        <h1>${name}</h1>
+        <div class="tagline">${tagline}</div>
+        <div class="nav">
+          <a href="#">About Us</a> |
+          <a href="#">Order Now</a> |
+          <a href="#">Testimonials</a>
+        </div>
+        <img src="https://placekitten.com/200/150" alt="funny placeholder" />
+      `;
+    }
+  </script>
 </body>
 </html>
