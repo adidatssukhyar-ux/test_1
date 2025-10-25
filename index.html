@@ -1,537 +1,121 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Pick Your Power — Starfield + StreetFighter Pixel Customizer</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pick Your Power — Pixel Fighter</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#030215; --accent:#9be7ff; --muted:#9bb0c8;
-    --panel:rgba(255,255,255,0.04);
-  }
-  html,body{height:100%;margin:0;background:var(--bg);font-family:Inter,system-ui,Roboto,Arial;color:#eaf6ff;-webkit-font-smoothing:antialiased;}
-  #app{position:relative;height:100vh;overflow:hidden;}
-  /* Starfield canvas */
+  :root{--bg:#030215;--accent:#9be7ff;--muted:#9bb0c8;}
+  html,body{height:100%;margin:0;background:var(--bg);font-family:'Press Start 2P',monospace;color:#eaf6ff;}
   #bg{position:absolute;inset:0;width:100%;height:100%;display:block;background:transparent;}
-  /* Menu overlay */
-  .menu{
-    position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);text-align:center;z-index:10;pointer-events:auto;
-  }
-  .title{
-    font-family:'Press Start 2P',monospace;color:var(--accent);font-size:40px;letter-spacing:2px;margin:0;
-    text-shadow:0 12px 40px rgba(0,0,0,0.8);
-  }
-  .prompt{margin-top:16px;font-family:'Press Start 2P',monospace;font-size:12px;color:var(--muted)}
+  .menu{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);text-align:center;z-index:10}
+  .title{font-size:32px;color:var(--accent);text-shadow:0 12px 40px rgba(0,0,0,0.8)}
+  .prompt{margin-top:16px;font-size:12px;color:var(--muted)}
   .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:20}
-  /* Customizer panel */
-  .customizer{
-    position:fixed;right:28px;top:50%;transform:translateY(-50%);width:420px;padding:16px;border-radius:12px;
-    background:linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03));box-shadow:0 12px 40px rgba(0,0,0,0.7);
-    display:none;z-index:15;backdrop-filter:blur(6px);
-  }
+  .customizer{position:fixed;right:20px;top:50%;transform:translateY(-50%);width:360px;padding:16px;border-radius:12px;
+    background:rgba(255,255,255,0.05);box-shadow:0 12px 40px rgba(0,0,0,0.7);display:none;z-index:15}
   .customizer.visible{display:block}
-  .panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-  .btn{padding:8px 10px;border-radius:8px;border:none;background:linear-gradient(180deg,#1b2b3a,#0f1a24);color:var(--accent);cursor:pointer}
-  label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
-  select,input[type="color"],input[type="range"]{
-    width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#eaf6ff;
-  }
-  .preview{
-    width:240px;height:360px;margin:8px auto;background:#081226;border:1px solid rgba(255,255,255,0.06);border-radius:10px;
-    display:flex;align-items:center;justify-content:center;
-  }
+  .preview{width:192px;height:288px;margin:8px auto;background:#081226;border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center}
   canvas.pixel{image-rendering:pixelated}
-  .row{margin-top:8px}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  @media (max-width:960px){
-    .customizer{position:fixed;left:12px;right:12px;top:auto;bottom:18px;transform:none;width:auto}
-    .title{font-size:24px}
-  }
+  label{font-size:12px;color:var(--muted);display:block;margin-top:8px}
+  select,input[type="color"],input[type="range"]{width:100%;padding:6px;border-radius:6px;background:transparent;border:1px solid rgba(255,255,255,0.08);color:#eaf6ff}
+  .btn{margin-top:10px;padding:6px 10px;border-radius:6px;border:none;background:#1b2b3a;color:var(--accent);cursor:pointer}
 </style>
 </head>
 <body>
-  <div id="app">
-    <canvas id="bg"></canvas>
+<canvas id="bg"></canvas>
 
-    <div class="menu" id="menu">
-      <div class="title">PICK YOUR POWER!</div>
-      <div class="prompt">PRESS ANYWHERE TO CONTINUE</div>
-    </div>
+<div class="menu" id="menu">
+  <div class="title">PICK YOUR POWER!</div>
+  <div class="prompt">PRESS ANYWHERE TO CONTINUE</div>
+</div>
 
-    <div class="flash" id="flash"></div>
+<div class="flash" id="flash"></div>
 
-    <div class="customizer" id="customizer" aria-label="StreetFighter pixel customizer">
-      <div class="panel-header">
-        <strong>StreetFighter Character Customizer</strong>
-        <button id="closeBtn" class="btn">Close</button>
-      </div>
-
-      <div class="preview">
-        <!-- Tiny pixel canvas scaled up -->
-        <canvas id="preview" class="pixel" width="96" height="96" style="width:240px;height:240px"></canvas>
-      </div>
-
-      <div class="grid">
-        <div>
-          <label>Start state</label>
-          <select id="startState">
-            <option value="pantsOnly">Pants only (bald)</option>
-            <option value="full">Full default (clothed)</option>
-          </select>
-        </div>
-        <div>
-          <label>Height</label>
-          <input id="height" type="range" min="0.9" max="1.25" step="0.01" value="1.0">
-        </div>
-      </div>
-
-      <div class="grid row">
-        <div>
-          <label>Skin</label>
-          <input id="skinColor" type="color" value="#ffd7c4">
-        </div>
-        <div>
-          <label>Pants</label>
-          <input id="pantsColor" type="color" value="#2b4b7a">
-        </div>
-      </div>
-
-      <div class="grid row">
-        <div>
-          <label>Hair style</label>
-          <select id="hairStyle">
-            <option value="none">None (bald)</option>
-            <option value="short">Short</option>
-            <option value="spiky">Spiky</option>
-            <option value="long">Long</option>
-            <option value="pony">Ponytail</option>
-          </select>
-        </div>
-        <div>
-          <label>Hair color</label>
-          <input id="hairColor" type="color" value="#222222">
-        </div>
-      </div>
-
-      <div class="grid row">
-        <div>
-          <label>Eyes</label>
-          <select id="eyesStyle">
-            <option value="none">None</option>
-            <option value="round">Round</option>
-            <option value="sharp">Sharp</option>
-            <option value="pixel">Pixel</option>
-          </select>
-        </div>
-        <div>
-          <label>Eye color</label>
-          <input id="eyesColor" type="color" value="#1b2b3a">
-        </div>
-      </div>
-
-      <div class="grid row">
-        <div>
-          <label>Gloves</label>
-          <select id="gloves">
-            <option value="none">None</option>
-            <option value="wraps">Hand wraps</option>
-            <option value="gloves">Gloves</option>
-          </select>
-        </div>
-        <div>
-          <label>Glove color</label>
-          <input id="gloveColor" type="color" value="#b03030">
-        </div>
-      </div>
-
-      <div class="grid row">
-        <div>
-          <label>Accessory</label>
-          <select id="accessory">
-            <option value="none">None</option>
-            <option value="headband">Headband</option>
-            <option value="scarf">Scarf</option>
-            <option value="mask">Mask</option>
-          </select>
-        </div>
-        <div>
-          <label>Accent color</label>
-          <input id="accentColor" type="color" value="#e83e8c">
-        </div>
-      </div>
-
-      <div class="row" style="display:flex;gap:8px;margin-top:12px">
-        <button id="randomize" class="btn">Randomize</button>
-        <button id="reset" class="btn">Reset</button>
-        <button id="export" class="btn" style="margin-left:auto">Export</button>
-      </div>
-    </div>
-  </div>
+<div class="customizer" id="customizer">
+  <div class="preview"><canvas id="preview" class="pixel" width="16" height="24"></canvas></div>
+  <label>Start State</label>
+  <select id="startState"><option value="pantsOnly">Pants only (bald)</option><option value="full">Full</option></select>
+  <label>Skin</label><input id="skinColor" type="color" value="#ffd7c4">
+  <label>Pants</label><input id="pantsColor" type="color" value="#2b4b7a">
+  <label>Hair Style</label>
+  <select id="hairStyle"><option value="none">None</option><option value="short">Short</option><option value="spiky">Spiky</option></select>
+  <label>Hair Color</label><input id="hairColor" type="color" value="#222222">
+  <label>Eyes</label>
+  <select id="eyesStyle"><option value="none">None</option><option value="round">Round</option><option value="sharp">Sharp</option></select>
+  <label>Eye Color</label><input id="eyesColor" type="color" value="#000000">
+  <button id="reset" class="btn">Reset</button>
+</div>
 
 <script>
-/* ---------- Starfield menu with mouse-parallax ---------- */
+/* ---------- Starfield background ---------- */
 const bg = document.getElementById('bg');
-const bctx = bg.getContext('2d');
-let DPR = Math.min(window.devicePixelRatio || 1, 2);
-
-function fitBG(){
-  const w = Math.max(640, window.innerWidth);
-  const h = Math.max(360, window.innerHeight);
-  bg.width = Math.round(w * DPR);
-  bg.height = Math.round(h * DPR);
-  bg.style.width = w + 'px';
-  bg.style.height = h + 'px';
-  bctx.setTransform(DPR,0,0,DPR,0,0);
-  bctx.imageSmoothingEnabled = true;
-}
-fitBG();
-window.addEventListener('resize', fitBG);
-
-const pointer = { x: window.innerWidth/2, y: window.innerHeight/2, sx:0, sy:0 };
-window.addEventListener('mousemove', e => { pointer.x = e.clientX; pointer.y = e.clientY; });
-
-const LAYERS = [
-  {count:220, size:1, color:'#fffdf8', stars:[]},
-  {count:140, size:2, color:'#cfeaff', stars:[]},
-  {count:80,  size:3, color:'#ffd7ff', stars:[]}
-];
-function seedStars(){
-  const w = bg.width/DPR, h = bg.height/DPR;
-  LAYERS.forEach(L=>{
-    L.stars = Array.from({length:L.count}, ()=>({x:Math.random()*w, y:Math.random()*h, r:Math.random()*L.size+0.4, p:Math.random()*Math.PI*2}));
+const ctx = bg.getContext('2d');
+let DPR = window.devicePixelRatio||1;
+function fit(){bg.width=innerWidth*DPR;bg.height=innerHeight*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);}
+fit();window.addEventListener('resize',fit);
+const stars = Array.from({length:200},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*2+1}));
+const pointer={x:innerWidth/2,y:innerHeight/2,sx:0,sy:0};
+window.addEventListener('mousemove',e=>{pointer.x=e.clientX;pointer.y=e.clientY;});
+function loop(){
+  ctx.fillStyle="#000814";ctx.fillRect(0,0,innerWidth,innerHeight);
+  const nx=(pointer.x/innerWidth-0.5)*2,ny=(pointer.y/innerHeight-0.5)*2;
+  pointer.sx+= (nx-pointer.sx)*0.05; pointer.sy+= (ny-pointer.sy)*0.05;
+  stars.forEach((s,i)=>{
+    ctx.fillStyle="#fff";
+    ctx.fillRect(s.x+pointer.sx*(i%3),s.y+pointer.sy*(i%3),s.r,s.r);
   });
-}
-seedStars();
-
-const planets = [
-  {x:0.18, y:0.25, r:0.14, a:'#ff8a65', b:'#ce4a1f', ring:true, rc:'rgba(255,200,140,0.12)', s:0.012},
-  {x:0.78, y:0.38, r:0.18, a:'#6ad3ff', b:'#0277bd', ring:false, s:-0.006},
-  {x:0.62, y:0.72, r:0.10, a:'#b19cff', b:'#6b3fa0', ring:true, rc:'rgba(180,140,255,0.12)', s:0.016}
-];
-
-function drawMenuStarfield(t){
-  const w = bg.width/DPR, h = bg.height/DPR;
-
-  // Nebula gradient
-  const g = bctx.createLinearGradient(0,0,0,h);
-  g.addColorStop(0,'#020418'); g.addColorStop(0.3,'#06264a'); g.addColorStop(0.7,'#071a34'); g.addColorStop(1,'#000814');
-  bctx.fillStyle = g; bctx.fillRect(0,0,w,h);
-
-  // Parallax amounts
-  const nx = (pointer.x / Math.max(window.innerWidth,1) - 0.5) * 2;
-  const ny = (pointer.y / Math.max(window.innerHeight,1) - 0.5) * 2;
-  pointer.sx += (nx - pointer.sx) * 0.06;
-  pointer.sy += (ny - pointer.sy) * 0.06;
-
-  // Stars
-  for(let li=0; li<LAYERS.length; li++){
-    const L = LAYERS[li];
-    bctx.fillStyle = L.color;
-    for(const s of L.stars){
-      const px = s.x + pointer.sx * (li+1) * 24;
-      const py = s.y + pointer.sy * (li+1) * 12;
-      const tw = 0.6 + Math.sin(t*0.9 + s.p) * 0.4;
-      bctx.globalAlpha = 0.85;
-      bctx.fillRect(px, py, Math.max(1, s.r*tw), Math.max(1, s.r*tw));
-    }
-    bctx.globalAlpha = 1;
-  }
-
-  // Planets
-  planets.forEach(p=>{
-    const cx = p.x * w + Math.sin(t * p.s * 40) * 14 + pointer.sx * 60 * p.r;
-    const cy = p.y * h + Math.cos(t * p.s * 30) * 10 + pointer.sy * 30 * p.r;
-    const R = p.r * Math.min(w,h);
-    const rg = bctx.createRadialGradient(cx - R*0.28, cy - R*0.28, R*0.06, cx, cy, R);
-    rg.addColorStop(0, p.a); rg.addColorStop(1, p.b);
-    bctx.fillStyle = rg; bctx.beginPath(); bctx.arc(cx, cy, R, 0, Math.PI*2); bctx.fill();
-    if(p.ring){
-      bctx.save(); bctx.translate(cx,cy); bctx.rotate(Math.sin(t * p.s * 40) * 0.18);
-      bctx.strokeStyle = p.rc; bctx.lineWidth = Math.max(1, R*0.06);
-      bctx.beginPath(); bctx.ellipse(0,0,R*1.6,R*0.6,0,0,Math.PI*2); bctx.stroke(); bctx.restore();
-    }
-  });
-}
-
-let last = performance.now();
-function loop(now){
-  const t = (now - last)/1000; last = now;
-  drawMenuStarfield(now*0.001);
   requestAnimationFrame(loop);
 }
-requestAnimationFrame(loop);
+loop();
 
-/* ---------- Transition: flash to customizer ---------- */
-const menu = document.getElementById('menu');
-const flash = document.getElementById('flash');
-const customizer = document.getElementById('customizer');
-
+/* ---------- Transition ---------- */
+const menu=document.getElementById('menu');
+const flash=document.getElementById('flash');
+const customizer=document.getElementById('customizer');
 function continueAction(){
-  flash.style.transition = 'none';
-  flash.style.opacity = '1';
-  requestAnimationFrame(()=> {
-    flash.style.transition = 'opacity 520ms cubic-bezier(.2,.9,0,1)';
-    flash.style.opacity = '0';
-  });
-  setTimeout(()=> { menu.style.display = 'none'; customizer.classList.add('visible'); }, 160);
-  window.removeEventListener('pointerdown', continueAction);
-  window.removeEventListener('touchstart', continueAction);
+  flash.style.transition='none';flash.style.opacity='1';
+  requestAnimationFrame(()=>{flash.style.transition='opacity 500ms';flash.style.opacity='0';});
+  setTimeout(()=>{menu.style.display='none';customizer.classList.add('visible');},200);
+  window.removeEventListener('pointerdown',continueAction);
 }
-window.addEventListener('pointerdown', continueAction, {passive:true});
-window.addEventListener('touchstart', continueAction, {passive:true});
+window.addEventListener('pointerdown',continueAction);
 
-/* ---------- StreetFighter-style pixel character ---------- */
-/* Design notes:
-   - Chibi-but-fighter proportions: big head, broad torso, defined arms, stance width.
-   - Starts bald + pants only (no top), optionally add gloves/wraps/headband etc.
-   - 96x96 canvas scaled up with image-rendering: pixelated for crisp pixels.
-*/
-const pv = document.getElementById('preview');
-const pctx = pv.getContext('2d'); pctx.imageSmoothingEnabled = false;
-const PW = pv.width, PH = pv.height;
-
-const ui = {
-  startState: document.getElementById('startState'),
-  height: document.getElementById('height'),
-  skin: document.getElementById('skinColor'),
-  pants: document.getElementById('pantsColor'),
-  hairStyle: document.getElementById('hairStyle'),
-  hairColor: document.getElementById('hairColor'),
-  eyesStyle: document.getElementById('eyesStyle'),
-  eyesColor: document.getElementById('eyesColor'),
-  gloves: document.getElementById('gloves'),
-  gloveColor: document.getElementById('gloveColor'),
-  accessory: document.getElementById('accessory'),
-  accentColor: document.getElementById('accentColor'),
-  randomize: document.getElementById('randomize'),
-  reset: document.getElementById('reset'),
-  export: document.getElementById('export'),
-  close: document.getElementById('closeBtn')
-};
-
-const model = {
-  startState: 'pantsOnly',
-  height: 1.0,
-  skin: '#ffd7c4',
-  pants: '#2b4b7a',
-  hairStyle: 'none',
-  hairColor: '#222222',
-  eyesStyle: 'none',
-  eyesColor: '#1b2b3a',
-  gloves: 'none',
-  gloveColor: '#b03030',
-  accessory: 'none',
-  accentColor: '#e83e8c'
-};
-
-function shade(hex, pct){
-  const f = hex.replace('#','');
-  const R = parseInt(f.substring(0,2),16), G = parseInt(f.substring(2,4),16), B = parseInt(f.substring(4,6),16);
-  const t = pct/100;
-  const nr = Math.round(R + ((t>0?255:0) - R) * Math.abs(t));
-  const ng = Math.round(G + ((t>0?255:0) - G) * Math.abs(t));
-  const nb = Math.round(B + ((t>0?255:0) - B) * Math.abs(t));
-  return `rgb(${nr},${ng},${nb})`;
+/* ---------- Pixel Fighter (FNaF style) ---------- */
+const pv=document.getElementById('preview');const pctx=pv.getContext('2d');
+const model={startState:'pantsOnly',skin:'#ffd7c4',pants:'#2b4b7a',hairStyle:'none',hairColor:'#222222',eyesStyle:'none',eyesColor:'#000'};
+function drawSprite(){
+  pctx.clearRect(0,0,pv.width,pv.height);
+  const s=model.skin, p=model.pants, h=model.hairColor, e=model.eyesColor;
+  // Head
+  if(model.startState!=='pantsOnly'||true){
+    pctx.fillStyle=s; pctx.fillRect(6,2,4,4);
+    if(model.hairStyle==='spiky'){pctx.fillStyle=h;pctx.fillRect(5,1,6,1);}
+    if(model.eyesStyle==='round'){pctx.fillStyle=e;pctx.fillRect(6,3,1,1);pctx.fillRect(9,3,1,1);}
+  }
+  // Torso
+  if(model.startState!=='pantsOnly'){pctx.fillStyle=s;pctx.fillRect(6,6,4,6);}
+  // Pants
+  pctx.fillStyle=p;pctx.fillRect(6,12,4,3);
+  // Legs
+  pctx.fillStyle=p;pctx.fillRect(6,15,1,5);pctx.fillRect(9,15,1,5);
 }
-
-function drawFighter(){
-  pctx.clearRect(0,0,PW,PH);
-  // backdrop for contrast
-  pctx.fillStyle = '#091328';
-  pctx.fillRect(0,0,PW,PH);
-
-  const cx = Math.floor(PW/2);
-  const floor = PH - 10;
-  const H = model.height;
-
-  // stance offsets (StreetFighter vibe: wider legs, arms out)
-  const torsoW = Math.round(26 * H);
-  const torsoH = Math.round(30 * H);
-  const headW = Math.round(24 * H);
-  const headH = Math.round(20 * H);
-
-  // Shadow
-  pctx.fillStyle = 'rgba(0,0,0,0.35)';
-  pctx.fillRect(cx-18, floor-3, 36, 4);
-
-  // Pants (always visible)
-  const pantsTop = floor - Math.round(12 * H) - Math.round(torsoH * (model.startState==='pantsOnly' ? 0.0 : 0.7));
-  pctx.fillStyle = model.pants;
-  pctx.fillRect(cx - Math.round(torsoW/2), pantsTop, torsoW, Math.round(12 * H));
-
-  // Legs (blocky, fighter stance)
-  pctx.fillStyle = shade(model.pants, -18);
-  pctx.fillRect(cx - Math.round(torsoW/2), pantsTop + Math.round(12*H), Math.round(torsoW*0.45), Math.round(14*H));
-  pctx.fillRect(cx + Math.round(torsoW*0.05), pantsTop + Math.round(12*H), Math.round(torsoW*0.45), Math.round(14*H));
-
-  // Torso (skin) only if full mode
-  if(model.startState !== 'pantsOnly'){
-    const torsoTop = pantsTop - torsoH;
-    pctx.fillStyle = model.skin;
-    pctx.fillRect(cx - Math.round(torsoW/2), torsoTop, torsoW, torsoH);
-  }
-
-  // Arms (fighter ready pose)
-  // Left arm (raised)
-  const armW = Math.round(8 * H), armH = Math.round(14 * H);
-  const torsoTop = pantsTop - (model.startState==='pantsOnly' ? 0 : torsoH);
-  pctx.fillStyle = model.skin;
-  // Attach arms even in pantsOnly to keep fighter silhouette
-  pctx.fillRect(cx - Math.round(torsoW/2) - armW + 2, torsoTop + Math.round(6 * H), armW, armH);
-  // Right arm (forward)
-  pctx.fillRect(cx + Math.round(torsoW/2) - 2, torsoTop + Math.round(4 * H), armW, armH);
-
-  // Gloves / wraps
-  if(model.gloves !== 'none'){
-    pctx.fillStyle = model.gloveColor;
-    // left glove block
-    pctx.fillRect(cx - Math.round(torsoW/2) - armW + 2, torsoTop + Math.round(6*H), armW, Math.round(6*H));
-    // right glove block
-    pctx.fillRect(cx + Math.round(torsoW/2) - 2, torsoTop + Math.round(4*H), armW, Math.round(6*H));
-    if(model.gloves === 'wraps'){
-      pctx.fillStyle = shade(model.gloveColor, 30);
-      pctx.fillRect(cx - Math.round(torsoW/2) - armW + 2, torsoTop + Math.round(10*H), armW, 2);
-      pctx.fillRect(cx + Math.round(torsoW/2) - 2, torsoTop + Math.round(8*H), armW, 2);
-    }
-  }
-
-  // Head (always)
-  const headY = torsoTop - headH - 2;
-  pctx.fillStyle = model.skin;
-  pctx.fillRect(cx - Math.round(headW/2), headY, headW, headH);
-
-  // Hair
-  if(model.hairStyle !== 'none' && !(model.startState==='pantsOnly')){
-    pctx.fillStyle = model.hairColor;
-    if(model.hairStyle === 'short'){
-      pctx.fillRect(cx - Math.round(headW/2), headY - 2, headW, 6);
-    } else if(model.hairStyle === 'spiky'){
-      pctx.fillRect(cx - Math.round(headW/2), headY - 2, headW, 4);
-      pctx.fillRect(cx - 8, headY - 8, 6, 8);
-      pctx.fillRect(cx - 1, headY - 10, 6, 10);
-      pctx.fillRect(cx + 6, headY - 8, 6, 8);
-    } else if(model.hairStyle === 'long'){
-      pctx.fillRect(cx - Math.round(headW/2), headY - 2, headW, 6);
-      pctx.fillRect(cx - 6, headY + headH - 2, 12, Math.round(18 * H));
-    } else if(model.hairStyle === 'pony'){
-      pctx.fillRect(cx - Math.round(headW/2), headY - 2, headW, 6);
-      pctx.fillRect(cx + Math.round(headW/2) - 4, headY + 6, 6, Math.round(16 * H));
-    }
-  } else {
-    // Bald highlight
-    pctx.fillStyle = 'rgba(255,255,255,0.12)'; pctx.fillRect(cx - 4, headY + 4, 8, 2);
-  }
-
-  // Eyes
-  if(model.eyesStyle !== 'none' && !(model.startState==='pantsOnly')){
-    pctx.fillStyle = model.eyesColor;
-    if(model.eyesStyle === 'round'){
-      pctx.fillRect(cx - 6, headY + 6, 4, 4);
-      pctx.fillRect(cx + 2, headY + 6, 4, 4);
-      pctx.fillStyle = '#fff'; pctx.fillRect(cx - 5, headY + 7, 1, 1); pctx.fillRect(cx + 3, headY + 7, 1, 1);
-    } else if(model.eyesStyle === 'sharp'){
-      pctx.fillRect(cx - 7, headY + 8, 10, 2);
-      pctx.fillRect(cx + 0, headY + 8, 10, 2);
-    } else if(model.eyesStyle === 'pixel'){
-      pctx.fillRect(cx - 7, headY + 6, 3, 3);
-      pctx.fillRect(cx + 4, headY + 6, 3, 3);
-    }
-  }
-
-  // Mouth (neutral)
-  pctx.fillStyle = 'rgba(0,0,0,0.6)';
-  pctx.fillRect(cx - 3, headY + headH - 4, 6, 1);
-
-  // Accessories (fighter flair)
-  if(model.accessory === 'headband'){
-    pctx.fillStyle = model.accentColor;
-    pctx.fillRect(cx - Math.round(headW/2), headY + 2, headW, 2);
-    // trailing band
-    pctx.fillRect(cx + Math.round(headW/2) - 2, headY + 4, 10, 2);
-  } else if(model.accessory === 'scarf'){
-    pctx.fillStyle = model.accentColor;
-    pctx.fillRect(cx - Math.round(torsoW/2), torsoTop + 2, torsoW, 4);
-  } else if(model.accessory === 'mask'){
-    pctx.fillStyle = '#222';
-    pctx.fillRect(cx - Math.round(headW/2) + 2, headY + 10, headW - 4, 6);
-  }
-
-  // Subtle outlines for crispness
-  pctx.strokeStyle = 'rgba(0,0,0,0.25)';
-  pctx.strokeRect(cx - Math.round(headW/2), headY, headW, headH);
-  pctx.strokeRect(cx - Math.round(torsoW/2), pantsTop, torsoW, Math.round(12*H));
+function sync(){
+  model.startState=document.getElementById('startState').value;
+  model.skin=document.getElementById('skinColor').value;
+  model.pants=document.getElementById('pantsColor').value;
+  model.hairStyle=document.getElementById('hairStyle').value;
+  model.hairColor=document.getElementById('hairColor').value;
+  model.eyesStyle=document.getElementById('eyesStyle').value;
+  model.eyesColor=document.getElementById('eyesColor').value;
+  drawSprite();
 }
-
-function syncModel(){
-  model.startState = ui.startState.value;
-  model.height = parseFloat(ui.height.value);
-  model.skin = ui.skin.value;
-  model.pants = ui.pants.value;
-  model.hairStyle = ui.hairStyle.value;
-  model.hairColor = ui.hairColor.value;
-  model.eyesStyle = ui.eyesStyle.value;
-  model.eyesColor = ui.eyesColor.value;
-  model.gloves = ui.gloves.value;
-  model.gloveColor = ui.gloveColor.value;
-  model.accessory = ui.accessory.value;
-  model.accentColor = ui.accentColor.value;
-
-  // Enforce bald + no eyes when starting pantsOnly until user changes
-  if(model.startState === 'pantsOnly'){
-    model.hairStyle = 'none';
-    ui.hairStyle.value = 'none';
-    model.eyesStyle = 'none';
-    ui.eyesStyle.value = 'none';
-  }
-  drawFighter();
-}
-
-['change','input'].forEach(evt=>{
-  [ui.startState, ui.height, ui.skin, ui.pants, ui.hairStyle, ui.hairColor, ui.eyesStyle, ui.eyesColor, ui.gloves, ui.gloveColor, ui.accessory, ui.accentColor]
-    .forEach(el=> el.addEventListener(evt, syncModel));
+['startState','skinColor','pantsColor','hairStyle','hairColor','eyesStyle','eyesColor'].forEach(id=>{
+  document.getElementById(id).addEventListener('input',sync);
 });
-
-ui.randomize.addEventListener('click', ()=>{
-  ui.hairStyle.value = ['none','short','spiky','long','pony'][Math.floor(Math.random()*5)];
-  ui.hairColor.value = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
-  ui.eyesStyle.value = ['none','round','sharp','pixel'][Math.floor(Math.random()*4)];
-  ui.eyesColor.value = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
-  ui.pants.value = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
-  ui.gloves.value = ['none','wraps','gloves'][Math.floor(Math.random()*3)];
-  ui.gloveColor.value = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
-  ui.accessory.value = ['none','headband','scarf','mask'][Math.floor(Math.random()*4)];
-  ui.accentColor.value = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
-  ui.height.value = (0.9 + Math.random()*0.35).toFixed(2);
-  syncModel();
-});
-
-ui.reset.addEventListener('click', ()=>{
-  ui.startState.value = 'pantsOnly';
-  ui.height.value = 1.0;
-  ui.skin.value = '#ffd7c4';
-  ui.pants.value = '#2b4b7a';
-  ui.hairStyle.value = 'none';
-  ui.hairColor.value = '#222222';
-  ui.eyesStyle.value = 'none';
-  ui.eyesColor.value = '#1b2b3a';
-  ui.gloves.value = 'none';
-  ui.gloveColor.value = '#b03030';
-  ui.accessory.value = 'none';
-  ui.accentColor.value = '#e83e8c';
-  syncModel();
-});
-
-ui.export.addEventListener('click', ()=>{
-  const url = pv.toDataURL('image/png');
-  const a = document.createElement('a'); a.href = url; a.download = 'streetfighter_pixel.png'; a.click();
-});
-
-ui.close.addEventListener('click', ()=> customizer.classList.remove('visible'));
-
-/* Initial draw */
-syncModel();
+document.getElementById('reset').addEventListener('click',()=>{model.startState='pantsOnly';model.skin='#ffd7c4';model.pants='#2b4b7a';model.hairStyle='none';model.hairColor='#222222';model.eyesStyle='none';model.eyesColor='#000';sync();});
+sync();
 </script>
 </body>
 </html>
-```
