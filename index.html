@@ -11,22 +11,25 @@
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
   <script>
+    // Scene + Camera
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 2000);
-    camera.position.set(0, 30, 120);
+    const camera = new THREE.PerspectiveCamera(
+      60, window.innerWidth / window.innerHeight, 0.1, 2000
+    );
+    camera.position.set(0, 0, 120);
 
-    const renderer = new THREE.WebGLRenderer({antialias:true});
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
     // Lighting
-    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
-    const point = new THREE.PointLight(0xffffff, 1);
-    point.position.set(100,100,100);
+    scene.add(new THREE.AmbientLight(0xffffff, 1));
+    const point = new THREE.PointLight(0xffffff, 2);
+    point.position.set(50, 50, 50);
     scene.add(point);
 
     // Voyager body
-    const bodyGeo = new THREE.BoxGeometry(8,6,6);
+    const bodyGeo = new THREE.BoxGeometry(8, 6, 6);
     const bodyMat = new THREE.MeshStandardMaterial({ color: 0x6688ff });
     const body = new THREE.Mesh(bodyGeo, bodyMat);
     scene.add(body);
@@ -35,39 +38,39 @@
     const dishGeo = new THREE.CylinderGeometry(0, 20, 6, 48, 1, true);
     const dishMat = new THREE.MeshStandardMaterial({ color: 0xffffcc, side: THREE.DoubleSide });
     const dish = new THREE.Mesh(dishGeo, dishMat);
-    dish.rotation.x = Math.PI/2;
-    dish.position.set(18,0,0);
+    dish.rotation.x = Math.PI / 2;
+    dish.position.set(18, 0, 0);
     body.add(dish);
 
     // Boom
-    const boomGeo = new THREE.CylinderGeometry(0.2,0.2,40,8);
+    const boomGeo = new THREE.CylinderGeometry(0.2, 0.2, 40, 8);
     const boomMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
     const boom = new THREE.Mesh(boomGeo, boomMat);
-    boom.rotation.z = Math.PI/2;
-    boom.position.set(-30,0,0);
+    boom.rotation.z = Math.PI / 2;
+    boom.position.set(-30, 0, 0);
     body.add(boom);
 
     // Golden record
-    const recordGeo = new THREE.CircleGeometry(2,32);
-    const recordMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness:0.8, roughness:0.3 });
+    const recordGeo = new THREE.CircleGeometry(2, 32);
+    const recordMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.8, roughness: 0.3 });
     const record = new THREE.Mesh(recordGeo, recordMat);
-    record.rotation.y = Math.PI/2;
-    record.position.set(0,0,3.5);
+    record.rotation.y = Math.PI / 2;
+    record.position.set(0, 0, 3.5);
     body.add(record);
 
     // Starfield
     const starGeo = new THREE.BufferGeometry();
     const starCount = 3000;
     const positions = [];
-    for(let i=0;i<starCount;i++){
+    for (let i = 0; i < starCount; i++) {
       positions.push(
-        (Math.random()-0.5)*3000,
-        (Math.random()-0.5)*3000,
-        (Math.random()-0.5)*3000
+        (Math.random() - 0.5) * 3000,
+        (Math.random() - 0.5) * 3000,
+        (Math.random() - 0.5) * 3000
       );
     }
-    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions,3));
-    const starMat = new THREE.PointsMaterial({ color:0xffffff, size:1 });
+    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 1 });
     const stars = new THREE.Points(starGeo, starMat);
     scene.add(stars);
 
@@ -76,8 +79,10 @@
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
     controls.enableZoom = true;
+    controls.target.set(0, 0, 0); // focus on Voyager
+    controls.update();
 
-    // Change mouse button mapping: right-click rotates
+    // Remap mouse buttons: right-click rotates
     controls.mouseButtons = {
       LEFT: THREE.MOUSE.PAN,
       MIDDLE: THREE.MOUSE.DOLLY,
@@ -85,17 +90,18 @@
     };
 
     // Animate
-    function animate(){
+    function animate() {
       requestAnimationFrame(animate);
       body.rotation.y += 0.002;
       body.rotation.x += 0.001;
       controls.update();
-      renderer.render(scene,camera);
+      renderer.render(scene, camera);
     }
     animate();
 
-    window.addEventListener('resize',()=>{
-      camera.aspect = window.innerWidth/window.innerHeight;
+    // Resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
