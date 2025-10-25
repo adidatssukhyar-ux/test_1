@@ -2,38 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>The Lonely Voyager</title>
+  <title>Solar System Demo</title>
   <style>
     body { margin: 0; overflow: hidden; background: black; font-family: monospace; }
-    #menu, #backBtn {
-      position: absolute; top: 20px; left: 20px; color: #0f0;
-      font-family: monospace;
-    }
-    #menu {
-      display: flex; flex-direction: column; align-items: flex-start;
-    }
-    #menu h1 {
-      margin: 0 0 20px 0;
-      font-size: 28px;
-      text-shadow: 0 0 5px #0f0;
-    }
-    #menu button, #backBtn {
-      margin: 10px 0;
-      padding: 10px 20px;
-      background: black;
-      color: #0f0;
-      border: 1px solid #0f0;
-      cursor: pointer;
-      font-family: monospace;
-      width: 200px;
-      text-align: left;
-    }
-    #menu button:hover, #backBtn:hover {
-      background: #0f0;
-      color: black;
-    }
-    #backBtn { display: none; }
-
     #tooltip {
       position: absolute;
       padding: 4px 8px;
@@ -47,12 +18,6 @@
   </style>
 </head>
 <body>
-  <div id="menu">
-    <h1>The Lonely Voyager</h1>
-    <button id="exploreBtn">Explore the Solar System</button>
-    <button id="rideBtn">Ride the Voyager</button>
-  </div>
-  <button id="backBtn">← Back</button>
   <div id="tooltip"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
@@ -65,51 +30,18 @@
 
     const renderer = new THREE.WebGLRenderer({antialias:true});
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x111133);
     document.body.appendChild(renderer.domElement);
 
-    // OrbitControls
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.enablePan = true;
-    controls.enableZoom = true;
     controls.target.set(0,0,0);
-    controls.update();
 
-    // Starfield
-    const starGeo = new THREE.BufferGeometry();
-    const starCount = 3000;
-    const positions = [];
-    for (let i=0;i<starCount;i++){
-      positions.push(
-        (Math.random()-0.5)*3000,
-        (Math.random()-0.5)*3000,
-        (Math.random()-0.5)*3000
-      );
-    }
-    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions,3));
-    const starMat = new THREE.PointsMaterial({color:0xffffff, size:1});
-    const stars = new THREE.Points(starGeo, starMat);
-    scene.add(stars);
-
-    // Voyager
-    const voyager = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.BoxGeometry(8,6,6), new THREE.MeshBasicMaterial({color:0x6688ff}));
-    voyager.add(body);
-    const dish = new THREE.Mesh(new THREE.CylinderGeometry(0,20,6,32,1,true), new THREE.MeshBasicMaterial({color:0xffffcc, side:THREE.DoubleSide}));
-    dish.rotation.x = Math.PI/2; dish.position.set(18,0,0);
-    voyager.add(dish);
-    scene.add(voyager);
-
-    // Solar system
-    const solarSystem = new THREE.Group();
-    solarSystem.visible = false;
-    scene.add(solarSystem);
-
+    // Sun
     const sun = new THREE.Mesh(new THREE.SphereGeometry(25,32,32), new THREE.MeshBasicMaterial({color:0xffcc00}));
-    solarSystem.add(sun);
+    scene.add(sun);
 
+    // Planets
     const planets = [];
     const planetData = [
       {name:"Mercury", color:0xaaaaaa, dist:60, size:3, speed:0.002},
@@ -127,20 +59,9 @@
         new THREE.MeshBasicMaterial({color:data.color})
       );
       mesh.userData = data;
-      solarSystem.add(mesh);
+      scene.add(mesh);
       planets.push(mesh);
-
-      const ring = new THREE.Mesh(
-        new THREE.RingGeometry(data.dist-0.2, data.dist+0.2, 128),
-        new THREE.MeshBasicMaterial({color:0x444444, side:THREE.DoubleSide})
-      );
-      ring.rotation.x = Math.PI/2;
-      solarSystem.add(ring);
     });
-
-    let exploring = false;
-    let driftingOut = false;
-    let driftingIn = false;
 
     // Tooltip
     const tooltip = document.getElementById('tooltip');
@@ -155,84 +76,34 @@
 
     function animate(){
       requestAnimationFrame(animate);
-      stars.rotation.y += 0.0005;
 
-      if(!exploring && !driftingIn){
-        voyager.rotation.y += 0.01;
+      sun.rotation.y += 0.001;
+      planets.forEach((p,i)=>{
+        const d = p.userData.dist;
+        const s = p.userData.speed;
+        p.position.x = Math.cos(Date.now()*s*0.1 + i) * d;
+        p.position.z = Math.sin(Date.now()*s*0.1 + i) * d;
+        p.rotation.y += 0.005;
+      });
+
+      // Hover detection
+      raycaster.setFromCamera(mouse, camera);
+      const intersects = raycaster.intersectObjects(planets);
+      if(intersects.length > 0){
+        const planet = intersects[0].object;
+        tooltip.style.display = 'block';
+        tooltip.style.left = (tooltip.dataset.mouseX*1 + 10) + 'px';
+        tooltip.style.top = (tooltip.dataset.mouseY*1 + 10) + 'px';
+        tooltip.textContent = planet.userData.name;
+      } else {
+        tooltip.style.display = 'none';
       }
 
-      if(driftingOut){
-        voyager.position.x += 2;
-        voyager.position.y += 0.5;
-        voyager.rotation.z += 0.05;
-        if(voyager.position.x > 200){
-          driftingOut = false;
-          voyager.visible = false;
-          solarSystem.visible = true;
-          exploring = true;
-          document.getElementById('backBtn').style.display = 'block';
-        }
-      }
-
-      if(driftingIn){
-        voyager.visible = true;
-        voyager.position.x -= 2;
-        voyager.position.y -= 0.5;
-        voyager.rotation.z -= 0.05;
-        if(voyager.position.x <= 0){
-          driftingIn = false;
-          exploring = false;
-          voyager.position.set(0,0,0);
-          voyager.rotation.set(0,0,0);
-          document.getElementById('menu').style.display = 'flex';
-        }
-      }
-
-      if(exploring){
-        sun.rotation.y += 0.001;
-        planets.forEach((p,i)=>{
-          const d = p.userData.dist;
-          const s = p.userData.speed;
-          p.position.x = Math.cos(Date.now()*s*0.1 + i) * d;
-          p.position.z = Math.sin(Date.now()*s*0.1 + i) * d;
-          p.rotation.y += 0.005;
-        });
-
-        // Hover detection
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(planets);
-        if(intersects.length > 0){
-          const planet = intersects[0].object;
-          tooltip.style.display = 'block';
-          tooltip.style.left = (tooltip.dataset.mouseX*1 + 10) + 'px';
-          tooltip.style.top = (tooltip.dataset.mouseY*1 + 10) + 'px';
-                   tooltip.textContent = planet.userData.name;
-        } else {
-          tooltip.style.display = 'none';
-        }
-      }
-
-      // update orbit controls
       controls.update();
-
       renderer.render(scene,camera);
     }
     animate();
 
-    // Buttons
-    document.getElementById('exploreBtn').addEventListener('click', ()=>{
-      document.getElementById('menu').style.display = 'none';
-      driftingOut = true;
-    });
-
-    document.getElementById('backBtn').addEventListener('click', ()=>{
-      document.getElementById('backBtn').style.display = 'none';
-      solarSystem.visible = false;
-      tooltip.style.display = 'none';
-      driftingIn = true;
-    });
-
-    // Handle resize
     window.addEventListener('resize', ()=>{
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
