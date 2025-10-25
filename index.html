@@ -633,24 +633,115 @@
     showBanner('SUPER★NOVA');
   }
 
+  // ===== Enhanced Meteor Rain =====
   function meteorRain() {
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 8; i++) {
       const meteor = document.createElement('div');
       meteor.className = 'meteor';
+      meteor.style.position = 'fixed';
+      meteor.style.width = '4px';
+      meteor.style.height = '20px';
+      meteor.style.background = 'linear-gradient(white, orange, red)';
       meteor.style.left = Math.random() * window.innerWidth + 'px';
-      meteor.style.animationDelay = (i * 0.2) + 's';
+      meteor.style.top = (-50 - Math.random() * 200) + 'px';
+      meteor.style.opacity = '0.9';
+      meteor.style.transform = 'rotate(25deg)';
       meteor.style.zIndex = 9999;
       document.body.appendChild(meteor);
-      setTimeout(() => meteor.remove(), 2000);
+
+      const duration = 1200 + Math.random() * 800;
+      meteor.animate([
+        { transform: 'translateY(0) rotate(25deg)', opacity: 1 },
+        { transform: `translateY(${window.innerHeight + 200}px) rotate(25deg)`, opacity: 0 }
+      ], {
+        duration,
+        easing: 'ease-in'
+      });
+
+      setTimeout(() => meteor.remove(), duration);
     }
   }
 
+  // ===== Enhanced Black Hole =====
   function blackHole() {
     const hole = document.createElement('div');
     hole.className = 'blackhole';
+    hole.style.position = 'fixed';
+    hole.style.left = '50%';
+    hole.style.top = '50%';
+    hole.style.transform = 'translate(-50%, -50%)';
+    hole.style.width = '80px';
+    hole.style.height = '80px';
+    hole.style.borderRadius = '50%';
+    hole.style.background = 'radial-gradient(circle, black 60%, purple 100%)';
+    hole.style.boxShadow = '0 0 40px 20px rgba(0,0,0,0.8)';
     hole.style.zIndex = 9999;
+    hole.style.opacity = '0';
     document.body.appendChild(hole);
-    setTimeout(() => hole.remove(), 2000);
+
+    hole.animate([
+      { transform: 'translate(-50%, -50%) scale(0.5)', opacity: 0 },
+      { transform: 'translate(-50%, -50%) scale(1.5)', opacity: 1 }
+    ], {
+      duration: 800,
+      fill: 'forwards',
+      easing: 'ease-out'
+    });
+
+    const objs = [...objectsEl.querySelectorAll('.obj')];
+    objs.forEach(o => {
+      o.style.transition = 'transform
+        same...
+
+  // ===== Enhanced Black Hole =====
+  function blackHole() {
+    const hole = document.createElement('div');
+    hole.className = 'blackhole';
+    hole.style.position = 'fixed';
+    hole.style.left = '50%';
+    hole.style.top = '50%';
+    hole.style.transform = 'translate(-50%, -50%)';
+    hole.style.width = '80px';
+    hole.style.height = '80px';
+    hole.style.borderRadius = '50%';
+    hole.style.background = 'radial-gradient(circle, black 60%, purple 100%)';
+    hole.style.boxShadow = '0 0 40px 20px rgba(0,0,0,0.8)';
+    hole.style.zIndex = 9999;
+    hole.style.opacity = '0';
+    document.body.appendChild(hole);
+
+    // Fade in and grow
+    hole.animate([
+      { transform: 'translate(-50%, -50%) scale(0.5)', opacity: 0 },
+      { transform: 'translate(-50%, -50%) scale(1.5)', opacity: 1 }
+    ], {
+      duration: 800,
+      fill: 'forwards',
+      easing: 'ease-out'
+    });
+
+    // Pull objects toward center
+    const objs = [...objectsEl.querySelectorAll('.obj')];
+    objs.forEach(o => {
+      o.style.transition = 'transform 1s ease, opacity 1s ease';
+      const rect = o.getBoundingClientRect();
+      const dx = window.innerWidth / 2 - (rect.left + rect.width / 2);
+      const dy = window.innerHeight / 2 - (rect.top + rect.height / 2);
+      o.style.transform = `translate(${dx}px, ${dy}px) scale(0.2)`;
+      o.style.opacity = '0';
+      setTimeout(() => o.remove(), 1000);
+    });
+
+    // Fade out and remove hole
+    setTimeout(() => {
+      hole.animate([
+        { opacity: 1, transform: 'translate(-50%, -50%) scale(1.5)' },
+        { opacity: 0, transform: 'translate(-50%, -50%) scale(0.2)' }
+      ], {
+        duration: 800,
+        easing: 'ease-in'
+      }).onfinish = () => hole.remove();
+    }, 2000);
   }
 
   // ===== Scene Damage / Destruction =====
@@ -668,7 +759,8 @@
   }
 
   function destroyRandomBig() {
-    const bigs = [...objectsEl.querySelectorAll('.obj.skyscraper, .obj.building')].filter(el => !el.classList.contains('destroy'));
+    const bigs = [...objectsEl.querySelectorAll('.obj.skyscraper, .obj.building')]
+      .filter(el => !el.classList.contains('destroy'));
     if (!bigs.length) return;
     const target = bigs[Math.floor(Math.random() * bigs.length)];
     target.classList.add('destroy');
