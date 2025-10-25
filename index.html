@@ -3,194 +3,281 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Pick Your Power — Starfield Intro</title>
+<title>Pick Your Power — Star Intro + Customizer</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#030215;--accent:#9be7ff;--muted:#9bb0c8;}
-  html,body{height:100%;margin:0;background:var(--bg);font-family:Inter,system-ui,Roboto,Arial;color:white;-webkit-font-smoothing:antialiased;}
-  #app{position:relative;height:100vh;overflow:hidden;display:flex;align-items:center;justify-content:center;}
-  canvas{display:block;width:100%;height:100%;background:transparent;}
-  .menu{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);text-align:center;color:var(--accent);text-shadow:0 10px 30px rgba(0,0,0,0.75);pointer-events:none;z-index:4}
-  .title{font-family:'Press Start 2P',monospace;font-size:40px;letter-spacing:2px;margin:0;color:var(--accent)}
-  .prompt{margin-top:16px;font-family:'Press Start 2P',monospace;font-size:12px;color:var(--muted);letter-spacing:1px}
-  .menu.hidden{opacity:0;transform:translate(-50%,-56%) scale(.98);transition:opacity 260ms, transform 260ms}
-  .hint{position:absolute;left:50%;transform:translateX(-50%);bottom:24px;padding:6px 12px;border-radius:10px;background:rgba(0,0,0,0.24);color:rgba(255,255,255,0.9);font-family:'Press Start 2P',monospace;font-size:11px;z-index:3;display:none}
-  .hint.visible{display:block}
-  @media (max-width:760px){ .title{font-size:18px} .prompt{font-size:10px} }
+  :root{
+    --bg:#030215;
+    --panel:rgba(6,10,20,0.72);
+    --accent:#9be7ff;
+    --muted:#9bb0c8;
+    --glass:rgba(255,255,255,0.04);
+  }
+  html,body{height:100%;margin:0;background:var(--bg);font-family:Inter,system-ui,Roboto,Arial;color:#eaf6ff; -webkit-font-smoothing:antialiased;}
+  #app{position:relative;height:100vh;overflow:hidden;display:flex;align-items:stretch;}
+  canvas#bg{flex:1;display:block;width:100%;height:100%;background:transparent;}
+  /* intro overlay */
+  .overlay{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:6;
+  }
+  .menu{
+    pointer-events:auto;
+    text-align:center; user-select:none;
+  }
+  .title{font-family:'Press Start 2P',monospace;color:var(--accent);font-size:40px;text-shadow:0 14px 40px rgba(0,0,0,0.85);margin:0;}
+  .prompt{font-family:'Press Start 2P',monospace;color:var(--muted);font-size:12px;margin-top:14px;}
+  /* flash full-screen */
+  .flash{
+    position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:12;
+  }
+
+  /* customizer panel (hidden until after flash) */
+  .customizer {
+    position:absolute; right:28px; top:50%; transform:translateY(-50%); width:420px; padding:18px; border-radius:14px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    box-shadow:0 12px 40px rgba(2,6,23,0.7); z-index:8; display:none;
+    backdrop-filter: blur(6px);
+  }
+  .customizer.visible{display:block;}
+  .panel-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;}
+  label{font-size:13px;color:var(--muted);width:86px;}
+  select, input[type="range"], input[type="color"]{
+    flex:1;background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px;border-radius:8px;color:#eaf6ff;
+  }
+  .preview {
+    width:180px;height:300px;background:linear-gradient(180deg,#061224,#042034);border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:center;margin:auto 0 14px 0;
+    border:1px solid rgba(255,255,255,0.04);
+  }
+  .row-inline{display:flex;gap:8px;align-items:center;}
+  .btn{
+    background:linear-gradient(180deg,#1b2b3a,#0f1a24);border:1px solid rgba(255,255,255,0.04);color:var(--accent);padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:700;
+  }
+  .small{font-size:12px;padding:6px 8px;border-radius:6px}
+  .footer-note{font-size:12px;color:var(--muted);margin-top:8px;text-align:center;}
+  /* layout for mobile */
+  @media (max-width:920px){
+    .customizer{position:fixed;left:12px;right:12px;top:auto;bottom:18px;transform:none;width:auto;border-radius:12px;}
+    .title{font-size:22px}
+  }
 </style>
 </head>
 <body>
-  <div id="app" role="main" aria-label="Pick Your Power star intro">
+  <div id="app" aria-label="Pick Your Power experience">
     <canvas id="bg"></canvas>
-    <div class="menu" id="menu" aria-hidden="false">
-      <div class="title">PICK YOUR POWER!</div>
-      <div class="prompt">PRESS ANYWHERE TO CONTINUE</div>
+
+    <div class="overlay" id="introOverlay" aria-hidden="false">
+      <div class="menu" id="introMenu">
+        <div class="title">PICK YOUR POWER!</div>
+        <div class="prompt">PRESS ANYWHERE TO CONTINUE</div>
+      </div>
     </div>
-    <div class="hint" id="hint">Move your mouse to pan the cosmos</div>
+
+    <div class="flash" id="flash"></div>
+
+    <div class="customizer" id="customizer" aria-hidden="true" role="dialog" aria-label="Character customizer">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+        <div style="flex:1">
+          <div style="font-weight:800;font-size:13px">Character Customizer</div>
+          <div style="font-size:12px;color:var(--muted)">Adjust visual features below</div>
+        </div>
+        <button id="doneBtn" class="small btn">Done</button>
+      </div>
+
+      <div class="preview" id="previewWrap">
+        <canvas id="preview" width="160" height="260" style="image-rendering:pixelated;background:transparent;border-radius:8px"></canvas>
+      </div>
+
+      <div class="panel-row">
+        <label for="bodyColor">Body</label>
+        <input id="bodyColor" type="color" value="#6ad3ff" aria-label="Body color">
+      </div>
+
+      <div class="panel-row">
+        <label for="hairSelect">Hair</label>
+        <select id="hairSelect" aria-label="Hair style">
+          <option value="short">Short</option>
+          <option value="spiky">Spiky</option>
+          <option value="long">Long</option>
+          <option value="pony">Ponytail</option>
+        </select>
+      </div>
+
+      <div class="panel-row">
+        <label for="hairColor">Hair Color</label>
+        <input id="hairColor" type="color" value="#222222" aria-label="Hair color">
+      </div>
+
+      <div class="panel-row">
+        <label for="eyesSelect">Eyes</label>
+        <select id="eyesSelect" aria-label="Eye style">
+          <option value="round">Round</option>
+          <option value="slit">Slit</option>
+          <option value="pixel">Pixel</option>
+        </select>
+      </div>
+
+      <div class="panel-row">
+        <label for="eyeColor">Eye Color</label>
+        <input id="eyeColor" type="color" value="#111111" aria-label="Eye color">
+      </div>
+
+      <div class="panel-row">
+        <label for="heightRange">Height</label>
+        <input id="heightRange" type="range" min="0.8" max="1.3" step="0.02" value="1" aria-label="Character height">
+      </div>
+
+      <div class="panel-row">
+        <label for="accSelect">Accessory</label>
+        <select id="accSelect" aria-label="Accessory">
+          <option value="none">None</option>
+          <option value="glasses">Glasses</option>
+          <option value="mask">Mask</option>
+          <option value="scarf">Scarf</option>
+          <option value="helmet">Helmet</option>
+        </select>
+      </div>
+
+      <div class="panel-row">
+        <label>Preview Scale</label>
+        <div class="row-inline">
+          <button id="decScale" class="small btn">-</button>
+          <div style="width:8px"></div>
+          <button id="incScale" class="small btn">+</button>
+        </div>
+      </div>
+
+      <div class="footer-note">Use the controls to make your character. Changes update immediately in the preview.</div>
+    </div>
   </div>
 
 <script>
-/*
-Single-file starfield intro:
-- Offscreen low-res star layers + high-res planets, upscaled for crispness.
-- Parallax follows mouse (x,y) with smooth easing.
-- Title + "press anywhere" menu. Click hides menu and shows hint for a few seconds.
-- No external assets required. All procedural.
+/* Full single-file: starfield intro + bright flash -> character customizer
+   - Left area: procedural starfield with planets (canvas #bg)
+   - Intro overlay: title + press anywhere
+   - Press triggers flash then shows customizer panel with live preview
+   - Customizer features: body color, hair style & color, eyes, height, accessory
+   - Preview rendered on a small canvas using blocky "sprite" drawing (no external assets)
 */
 
-const canvas = document.getElementById('bg');
-const ctx = canvas.getContext('2d', { alpha: true });
-const menu = document.getElementById('menu');
-const hint = document.getElementById('hint');
+/* ---------- Starfield background (adapted from previous) ---------- */
+const bgCanvas = document.getElementById('bg');
+const bgCtx = bgCanvas.getContext('2d', { alpha: true });
 
 let DPR = Math.min(window.devicePixelRatio || 1, 2);
-
-// Offscreen low-res surface for starfield layering (pixelated/star density control)
 const off = document.createElement('canvas');
 const offCtx = off.getContext('2d', { alpha: true });
 
-let lowW = 640, lowH = 360;
 function fit() {
-  const w = window.innerWidth, h = window.innerHeight;
-  const aspect = w / h;
-  lowW = Math.max(320, Math.min(1200, Math.round(640 * Math.min(1.8, aspect))));
-  lowH = Math.round(lowW * 9 / 16);
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  // choose a moderate low-res buffer for performance and feel
+  const lowW = Math.max(480, Math.round(Math.min(1000, w * 0.7)));
+  const lowH = Math.round(lowW * 9 / 16);
   off.width = lowW; off.height = lowH;
-  canvas.width = lowW * DPR; canvas.height = lowH * DPR;
-  canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
-  ctx.setTransform(DPR,0,0,DPR,0,0);
-  ctx.imageSmoothingEnabled = true;
+  bgCanvas.width = lowW * DPR; bgCanvas.height = lowH * DPR;
+  bgCanvas.style.width = w + 'px'; bgCanvas.style.height = h + 'px';
+  bgCtx.setTransform(DPR,0,0,DPR,0,0);
+  bgCtx.imageSmoothingEnabled = true;
   offCtx.imageSmoothingEnabled = true;
 }
 window.addEventListener('resize', fit);
 fit();
 
-/* pointer + smoothing */
-const pointer = { x: window.innerWidth/2, y: window.innerHeight/2, active:false };
-window.addEventListener('mousemove', e => { pointer.x = e.clientX; pointer.y = e.clientY; pointer.active = true; });
-window.addEventListener('touchmove', e => { const t = e.touches[0]; if(t){ pointer.x = t.clientX; pointer.y = t.clientY; pointer.active = true; } }, {passive:true});
+/* pointer and smoothing */
+const pointer = { x: window.innerWidth/2, y: window.innerHeight/2 };
+window.addEventListener('mousemove', e => { pointer.x = e.clientX; pointer.y = e.clientY; });
+window.addEventListener('touchmove', e => { const t = e.touches[0]; if(t){ pointer.x = t.clientX; pointer.y = t.clientY; } }, {passive:true});
 
-const state = { time:0, tx:0, ty:0, sx:0, sy:0 };
+const st = { time:0, tx:0, ty:0, sx:0, sy:0 };
 
-/* helpers */
+/* procedural planets & stars */
+const STAR_LAYERS = [
+  { count: 220, size: 0.9, color: '#fffdf8', alpha: 0.92 },
+  { count: 120, size: 1.6, color: '#cfeaff', alpha: 0.86 },
+  { count: 64,  size: 2.8, color: '#ffd7ff', alpha: 0.9 }
+];
+for(const L of STAR_LAYERS) L.stars = Array.from({length:L.count}, ()=>({
+  x: Math.random(), y: Math.random(), r: L.size*(0.6 + Math.random()*0.9), phase: Math.random()*Math.PI*2
+}));
+
+const planets = [
+  { x: 0.18, y: 0.22, r: 0.16, colorA:'#ff8a65', colorB:'#ce4a1f', ring:true, ringColor:'rgba(255,200,140,0.12)', speed: 0.012 },
+  { x: 0.78, y: 0.36, r: 0.24, colorA:'#6ad3ff', colorB:'#0277bd', ring:false, speed: -0.006 },
+  { x: 0.62, y: 0.74, r: 0.10, colorA:'#b19cff', colorB:'#6b3fa0', ring:true, ringColor:'rgba(180,140,255,0.12)', speed: 0.016 }
+];
+
+/* meteors queue */
+const meteors = [];
+function spawnMeteor(w,h){ meteors.push({ x: Math.random()*w, y: Math.random()*h*0.36, vx: 200+Math.random()*400, vy: 40+Math.random()*140, life: 600+Math.random()*1400, t:0 }); }
+
+/* drawing helpers */
 function lerp(a,b,t){ return a + (b-a) * t; }
 function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
 function rand(min,max){ return min + Math.random()*(max-min); }
 
-/* Pre-generate star layers for depth (sparks) */
-const STAR_LAYERS = [
-  { count: 220, size: 0.7, speed: 0.02, alpha: 0.9, color: '#fff7f3' },
-  { count: 140, size: 1.4, speed: 0.04, alpha: 0.85, color: '#cfeaff' },
-  { count: 80,  size: 2.4, speed: 0.08, alpha: 0.95, color: '#ffd7ff' }
-];
-
-function makeStars(layer){
-  const arr = [];
-  for(let i=0;i<layer.count;i++){
-    arr.push({
-      x: Math.random() * lowW,
-      y: Math.random() * lowH,
-      r: layer.size * (0.6 + Math.random()*0.8),
-      tw: Math.random()*1.5 + 0.5,
-      phase: Math.random()*Math.PI*2
-    });
-  }
-  return arr;
-}
-for(const L of STAR_LAYERS) L.stars = makeStars(L);
-
-/* Planets (procedural circles with rings) */
-const planets = [
-  { x: 0.18, y: 0.22, r: 0.14, colorA:'#ff8a65', colorB:'#ce4a1f', ring:true, ringColor:'rgba(255,200,140,0.12)', speed: 0.01 },
-  { x: 0.78, y: 0.36, r: 0.22, colorA:'#6ad3ff', colorB:'#0277bd', ring:false, speed: -0.006 },
-  { x: 0.62, y: 0.72, r: 0.10, colorA:'#b19cff', colorB:'#6b3fa0', ring:true, ringColor:'rgba(180,140,255,0.12)', speed: 0.016 }
-];
-
-/* Nebula/gradient painter */
-function drawNebula(c,w,h, ox, oy, t){
+/* draw nebula background on offscreen */
+function drawNebula(c,w,h, ox, oy, time){
   const g = c.createLinearGradient(0,0,w,h);
-  g.addColorStop(0, '#04102b');
+  g.addColorStop(0, '#020418');
   g.addColorStop(0.25, '#06264a');
-  g.addColorStop(0.5, '#0b2340');
-  g.addColorStop(1, '#00081a');
+  g.addColorStop(0.6, '#071a34');
+  g.addColorStop(1, '#000814');
   c.fillStyle = g; c.fillRect(0,0,w,h);
 
-  // soft moving nebula blobs
   c.globalCompositeOperation = 'lighter';
-  for(let i=0;i<5;i++){
-    const bx = (Math.sin(t*0.2 + i*1.7) * 0.5 + 0.5) * w + ox * (i-2) * 40;
-    const by = (Math.cos(t*0.13 + i*2.3) * 0.5 + 0.5) * h * 0.6 + oy * (i-2) * 24;
-    const rad = (0.15 + (i*0.06)) * Math.min(w,h);
+  for(let i=0;i<4;i++){
+    const bx = (Math.sin(time*0.2 + i*1.7) * 0.5 + 0.5) * w + ox * (i-2) * 40;
+    const by = (Math.cos(time*0.13 + i*2.3) * 0.5 + 0.5) * h * 0.6 + oy * (i-2) * 24;
+    const rad = (0.12 + (i*0.05)) * Math.min(w,h);
     const grad = c.createRadialGradient(bx,by,rad*0.12,bx,by,rad);
-    const col = i%2===0 ? 'rgba(120,200,255,0.08)' : 'rgba(220,140,255,0.06)';
+    const col = i%2===0 ? 'rgba(120,200,255,0.05)' : 'rgba(220,140,255,0.04)';
     grad.addColorStop(0, col); grad.addColorStop(1, 'rgba(0,0,0,0)');
-    c.fillStyle = grad; c.fillRect(bx-rad, by-rad, rad*2, rad*2);
+    c.fillStyle = grad; c.fillRect(bx-rad,by-rad,rad*2,rad*2);
   }
   c.globalCompositeOperation = 'source-over';
 }
 
-/* draw stars per-layer (twinkle + parallax) */
-function drawStars(c, w, h, ox, oy, t){
+/* draw layers of stars */
+function drawStars(c,w,h,ox,oy,time){
   for(let li=0; li<STAR_LAYERS.length; li++){
     const L = STAR_LAYERS[li];
     c.globalAlpha = L.alpha;
     c.fillStyle = L.color;
     for(const s of L.stars){
-      // parallax offset scales with layer index
-      const px = s.x + ox * (li+1) * 12;
-      const py = s.y + oy * (li+1) * 8;
-      const tw = 0.6 + Math.sin(t * (s.tw*1.2) + s.phase) * 0.4;
-      c.beginPath();
-      c.arc(px, py, Math.max(0.3, s.r * tw), 0, Math.PI*2);
-      c.fill();
+      const px = (s.x * w) + ox * (li+1) * 18;
+      const py = (s.y * h) + oy * (li+1) * 10;
+      const tw = 0.7 + Math.sin(time * (s.phase*0.4 + 1.2)) * 0.4;
+      c.beginPath(); c.arc(px, py, Math.max(0.3, s.r * tw), 0, Math.PI*2); c.fill();
     }
     c.globalAlpha = 1;
   }
 }
 
-/* draw planets */
-function drawPlanets(c,w,h,t, ox, oy){
-  for(let p of planets){
-    // move planets slowly for life
-    const cx = p.x * w + Math.sin(t * p.speed * 40) * 14 + ox * 80 * (p.r);
-    const cy = p.y * h + Math.cos(t * p.speed * 30) * 10 + oy * 40 * (p.r);
+/* planets (slow motion with slight parallax) */
+function drawPlanets(c,w,h, time, ox, oy){
+  for(const p of planets){
+    const cx = p.x * w + Math.sin(time * p.speed * 40) * 14 + ox * 80 * p.r;
+    const cy = p.y * h + Math.cos(time * p.speed * 30) * 10 + oy * 40 * p.r;
     const radius = p.r * Math.min(w,h);
-    // body gradient
-    const g = c.createRadialGradient(cx - radius*0.3, cy - radius*0.3, radius*0.1, cx, cy, radius);
+    // body
+    const g = c.createRadialGradient(cx - radius*0.28, cy - radius*0.28, radius*0.06, cx, cy, radius);
     g.addColorStop(0, p.colorA); g.addColorStop(1, p.colorB);
     c.fillStyle = g; c.beginPath(); c.arc(cx, cy, radius, 0, Math.PI*2); c.fill();
-    // subtle surface shading
-    c.fillStyle = 'rgba(0,0,0,0.12)';
-    c.beginPath(); c.arc(cx + radius*0.28, cy + radius*0.22, radius*0.9, 0, Math.PI*2); c.fill();
     // ring
     if(p.ring){
-      c.save();
-      c.translate(cx, cy);
-      c.rotate(Math.sin(t * p.speed * 40) * 0.18);
-      c.strokeStyle = p.ringColor; c.lineWidth = Math.max(1, radius*0.08);
-      c.beginPath(); c.ellipse(0, 0, radius*1.6, radius*0.6, 0, 0, Math.PI*2); c.stroke();
-      c.restore();
+      c.save(); c.translate(cx,cy); c.rotate(Math.sin(time * p.speed * 40)*0.18);
+      c.strokeStyle = p.ringColor; c.lineWidth = Math.max(1, radius*0.06);
+      c.beginPath(); c.ellipse(0,0,radius*1.6,radius*0.6,0,0,Math.PI*2); c.stroke(); c.restore();
     }
     // glow
-    const glow = c.createRadialGradient(cx,cy,radius*0.3,cx,cy,radius*2.2);
-    glow.addColorStop(0,'rgba(255,255,255,0.05)'); glow.addColorStop(1,'rgba(0,0,0,0)');
-    c.fillStyle = glow; c.fillRect(cx - radius*2.2, cy - radius*2.2, radius*4.4, radius*4.4);
+    const glow = c.createRadialGradient(cx,cy,radius*0.28,cx,cy,radius*1.8);
+    glow.addColorStop(0,'rgba(255,255,255,0.04)'); glow.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle = glow; c.fillRect(cx-radius*1.8, cy-radius*1.8, radius*3.6, radius*3.6);
   }
 }
 
-/* small shooting stars and flares */
-const meteors = [];
-function spawnMeteor(w,h){
-  meteors.push({
-    x: Math.random()*w,
-    y: Math.random()*h*0.35,
-    vx: rand(200,420),
-    vy: rand(40,140),
-    life: rand(800,1700),
-    t: 0
-  });
-}
-function updateMeteors(c, w, h, dt, ox, oy){
+/* meteors */
+function updateMeteors(c,w,h,dt,ox,oy){
   for(let i=meteors.length-1;i>=0;i--){
     const m = meteors[i];
     m.t += dt*1000;
@@ -198,90 +285,281 @@ function updateMeteors(c, w, h, dt, ox, oy){
     m.y += (m.vy * dt);
     const px = m.x + ox * 30;
     const py = m.y + oy * 12;
-    const len = Math.max(8, (m.vx*0.02));
-    c.strokeStyle = 'rgba(255,255,255,0.9)';
-    c.lineWidth = 1;
-    c.beginPath(); c.moveTo(px,py); c.lineTo(px - len, py - len*0.3); c.stroke();
+    const len = Math.max(8, (m.vx * 0.02));
+    c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(px,py); c.lineTo(px - len, py - len * 0.28); c.stroke();
     if(m.t > m.life) meteors.splice(i,1);
   }
-  if(Math.random() < 0.004) spawnMeteor(w,h);
+  if(Math.random() < 0.004) spawnMeteor(off.width, off.height);
 }
 
-/* draw faint grid / star-scape depth (optional subtle parallax details) */
-function drawGrid(c,w,h, ox, oy){
-  c.save();
-  c.globalAlpha = 0.06;
-  c.strokeStyle = '#88a3c8';
-  c.lineWidth = 1;
-  const spacing = Math.round(Math.min(w,h) * 0.12);
-  for(let x = -spacing*2; x < w+spacing*2; x += spacing){
-    c.beginPath(); c.moveTo(x + ox*30, 0); c.lineTo(x + ox*30, h); c.stroke();
-  }
-  c.globalAlpha = 1; c.restore();
-}
-
-/* main draw loop */
+/* main starfield loop */
 let last = performance.now();
-function loop(now){
+function starLoop(now){
   const dt = Math.min((now - last)/1000, 0.033);
   last = now;
-  state.time += dt;
+  st.time += dt;
 
-  // pointer normalized -1..1
+  // normalized pointer -1..1
   const nx = (pointer.x / Math.max(window.innerWidth,1) - 0.5) * 2;
   const ny = (pointer.y / Math.max(window.innerHeight,1) - 0.5) * 2;
 
-  // targets for smooth parallax
-  state.tx = clamp(nx * 1.0, -1, 1);
-  state.ty = clamp(ny * 0.9, -1, 1);
+  // strong parallax target
+  st.tx = clamp(nx * 1.0, -1, 1);
+  st.ty = clamp(ny * 0.9, -1, 1);
 
-  state.sx = lerp(state.sx || 0, state.tx, Math.min(1, 6*dt));
-  state.sy = lerp(state.sy || 0, state.ty, Math.min(1, 6*dt));
+  st.sx = lerp(st.sx || 0, st.tx, Math.min(1, 6*dt));
+  st.sy = lerp(st.sy || 0, st.ty, Math.min(1, 6*dt));
 
-  // map to pixel-space offsets for layers
-  const ox = state.sx; const oy = state.sy;
+  const ox = st.sx; const oy = st.sy;
 
-  // draw nebula & base to offscreen
-  offCtx.clearRect(0,0,off.width, off.height);
-  drawNebula(offCtx, off.width, off.height, ox, oy, state.time);
-
-  // stars (layers)
-  drawStars(offCtx, off.width, off.height, ox, oy, state.time);
-
-  // planets (draw above stars)
-  drawPlanets(offCtx, off.width, off.height, state.time, ox, oy);
-
-  // meteors
+  // offscreen render
+  offCtx.clearRect(0,0,off.width,off.height);
+  drawNebula(offCtx, off.width, off.height, ox, oy, st.time);
+  drawStars(offCtx, off.width, off.height, ox, oy, st.time);
+  drawPlanets(offCtx, off.width, off.height, st.time, ox, oy);
   updateMeteors(offCtx, off.width, off.height, dt, ox, oy);
 
-  // upscale offscreen to visible canvas with slight smoothing for glow
-  ctx.clearRect(0,0,canvas.width/DPR, canvas.height/DPR);
-  ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(off, 0, 0, off.width, off.height, 0, 0, canvas.width/DPR, canvas.height/DPR);
+  // upscale to visible canvas
+  bgCtx.clearRect(0,0,bgCanvas.width/DPR, bgCanvas.height/DPR);
+  bgCtx.imageSmoothingEnabled = true;
+  bgCtx.drawImage(off, 0, 0, off.width, off.height, 0, 0, bgCanvas.width/DPR, bgCanvas.height/DPR);
 
-  requestAnimationFrame(loop);
+  requestAnimationFrame(starLoop);
 }
-requestAnimationFrame(loop);
+requestAnimationFrame(starLoop);
 
-/* menu interaction */
-function continueAction(){
-  if(!menu.classList.contains('hidden')){
-    menu.classList.add('hidden');
-    hint.classList.add('visible');
-    setTimeout(()=> hint.classList.remove('visible'), 4200);
+/* seed a few meteors */
+for(let i=0;i<3;i++) spawnMeteor(off.width, off.height);
+
+/* ---------- Intro -> Flash -> Customizer transition ---------- */
+const introOverlay = document.getElementById('introOverlay');
+const flash = document.getElementById('flash');
+const customizer = document.getElementById('customizer');
+const hintEl = document.getElementById('hint');
+
+function doFlashThenOpenCustomizer(){
+  // bright flash
+  flash.style.transition = 'none';
+  flash.style.opacity = '1';
+  // ramp down quickly for dramatic flash
+  requestAnimationFrame(()=> {
+    flash.style.transition = 'opacity 520ms cubic-bezier(.2,.9,0,1)';
+    flash.style.opacity = '0';
+  });
+  // after short delay, hide intro and show customizer
+  setTimeout(()=> {
+    introOverlay.style.display = 'none';
+    customizer.classList.add('visible');
+    customizer.setAttribute('aria-hidden','false');
+    hintEl.classList.add('visible');
+    setTimeout(()=> hintEl.classList.remove('visible'), 3800);
+  }, 160);
+}
+
+/* intro click */
+function onIntroClick(){
+  doFlashThenOpenCustomizer();
+  window.removeEventListener('pointerdown', onIntroClick);
+}
+window.addEventListener('pointerdown', onIntroClick, {passive:true});
+window.addEventListener('touchstart', onIntroClick, {passive:true});
+
+/* ---------- Character preview drawing (pixelated sprite) ---------- */
+const previewCanvas = document.getElementById('preview');
+const pCtx = previewCanvas.getContext('2d');
+pCtx.imageSmoothingEnabled = false;
+
+const stateChar = {
+  body:'#6ad3ff',
+  hairStyle:'short',
+  hairColor:'#222222',
+  eyes:'round',
+  eyeColor:'#111111',
+  height:1.0,
+  accessory:'none',
+  scale:1.0
+};
+
+function drawCharacterPreview(){
+  const W = previewCanvas.width;
+  const H = previewCanvas.height;
+  pCtx.clearRect(0,0,W,H);
+  // background subtle
+  pCtx.fillStyle = 'rgba(4,8,18,0.2)'; pCtx.fillRect(0,0,W,H);
+
+  // compute center and scaled sizes
+  const centerX = W/2;
+  const floorY = H - 28;
+  const baseH = 80 * stateChar.height;
+  const bodyW = 36 * stateChar.scale;
+  const bodyH = baseH * 0.9 * stateChar.scale;
+
+  // shadow
+  pCtx.fillStyle = 'rgba(0,0,0,0.35)';
+  pCtx.beginPath(); pCtx.ellipse(centerX, floorY - 4, 30, 8, 0, 0, Math.PI*2); pCtx.fill();
+
+  // legs (blocky)
+  pCtx.fillStyle = shade(stateChar.body, -20);
+  const legW = 10 * stateChar.scale;
+  pCtx.fillRect(centerX - legW - 4, floorY - 8, legW, 12 * stateChar.scale);
+  pCtx.fillRect(centerX + 4, floorY - 8, legW, 12 * stateChar.scale);
+
+  // torso
+  pCtx.fillStyle = stateChar.body;
+  pCtx.fillRect(centerX - bodyW/2, floorY - 8 - bodyH, bodyW, bodyH);
+
+  // head
+  const headW = 36 * stateChar.scale;
+  const headH = 32 * stateChar.scale;
+  const headY = floorY - 8 - bodyH - headH - 6;
+  pCtx.fillStyle = stateChar.body;
+  roundRect(pCtx, centerX - headW/2, headY, headW, headH, 6 * stateChar.scale);
+  pCtx.fill();
+
+  // hair (multiple styles)
+  pCtx.fillStyle = stateChar.hairColor;
+  drawHair(stateChar.hairStyle, pCtx, centerX, headY, headW, headH, stateChar.scale);
+
+  // eyes
+  pCtx.fillStyle = stateChar.eyeColor;
+  drawEyes(stateChar.eyes, pCtx, centerX, headY, headW, headH, stateChar.scale);
+
+  // accessory
+  drawAccessory(stateChar.accessory, pCtx, centerX, headY, headW, headH, stateChar.scale);
+
+  // small outline for crispness
+  pCtx.strokeStyle = 'rgba(0,0,0,0.18)'; pCtx.lineWidth = Math.max(1, 1.5*stateChar.scale);
+  // stroke torso/head edges (approx)
+  pCtx.strokeRect(centerX - bodyW/2, floorY - 8 - bodyH, bodyW, bodyH);
+  roundRectStroke(pCtx, centerX - headW/2, headY, headW, headH, 6 * stateChar.scale);
+}
+
+/* drawing helpers for preview */
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+function roundRectStroke(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+  ctx.stroke();
+}
+function shade(hex, pct){
+  const f = hex.replace('#','');
+  const R = parseInt(f.substring(0,2),16);
+  const G = parseInt(f.substring(2,4),16);
+  const B = parseInt(f.substring(4,6),16);
+  const t = pct/100;
+  const newR = Math.round(R + ((t>0?255:0) - R) * Math.abs(t));
+  const newG = Math.round(G + ((t>0?255:0) - G) * Math.abs(t));
+  const newB = Math.round(B + ((t>0?255:0) - B) * Math.abs(t));
+  return `rgb(${newR},${newG},${newB})`;
+}
+function drawHair(style, ctx, cx, hy, hw, hh, scale){
+  if(style === 'short'){
+    ctx.fillRect(cx - hw*0.52, hy - 6*scale, hw*1.04, 12*scale);
+  } else if(style === 'spiky'){
+    // spikes left->right
+    const spikeW = 10*scale;
+    for(let i=-2;i<=2;i++){
+      ctx.beginPath();
+      const x = cx + i*spikeW*0.8;
+      ctx.moveTo(x - spikeW, hy - 4*scale);
+      ctx.lineTo(x, hy - 18*scale);
+      ctx.lineTo(x + spikeW, hy - 4*scale);
+      ctx.closePath(); ctx.fill();
+    }
+  } else if(style === 'long'){
+    // bangs + long back
+    ctx.fillRect(cx - hw*0.52, hy - 6*scale, hw*1.04, 12*scale);
+    ctx.fillRect(cx - hw*0.48, hy + 6*scale, hw*0.96, 28*scale);
+  } else if(style === 'pony'){
+    ctx.fillRect(cx - hw*0.52, hy - 6*scale, hw*1.04, 12*scale);
+    ctx.beginPath(); ctx.ellipse(cx + hw*0.45, hy + 8*scale, 8*scale, 18*scale, 0,0,Math.PI*2); ctx.fill();
   }
 }
-window.addEventListener('pointerdown', continueAction, {passive:true});
-window.addEventListener('touchstart', continueAction, {passive:true});
+function drawEyes(style, ctx, cx, hy, hw, hh, scale){
+  if(style === 'round'){
+    ctx.fillRect(cx - 12*scale, hy + 2*scale, 6*scale, 6*scale);
+    ctx.fillRect(cx + 6*scale, hy + 2*scale, 6*scale, 6*scale);
+  } else if(style === 'slit'){
+    ctx.fillRect(cx - 12*scale, hy + 6*scale, 10*scale, 2*scale);
+    ctx.fillRect(cx + 2*scale, hy + 6*scale, 10*scale, 2*scale);
+  } else if(style === 'pixel'){
+    ctx.fillRect(cx - 14*scale, hy + 0*scale, 4*scale, 4*scale);
+    ctx.fillRect(cx - 8*scale, hy + 2*scale, 4*scale, 4*scale);
+    ctx.fillRect(cx + 6*scale, hy + 0*scale, 4*scale, 4*scale);
+    ctx.fillRect(cx + 10*scale, hy + 2*scale, 4*scale, 4*scale);
+  }
+}
+function drawAccessory(which, ctx, cx, hy, hw, hh, scale){
+  if(which === 'glasses'){
+    ctx.strokeStyle = '#000'; ctx.lineWidth = Math.max(2,1.6*scale);
+    ctx.strokeRect(cx - 16*scale, hy + 1*scale, 12*scale, 8*scale);
+    ctx.strokeRect(cx + 4*scale, hy + 1*scale, 12*scale, 8*scale);
+    ctx.beginPath(); ctx.moveTo(cx - 4*scale, hy + 5*scale); ctx.lineTo(cx + 4*scale, hy + 5*scale); ctx.stroke();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+  } else if(which === 'mask'){
+    ctx.fillStyle = '#333'; ctx.fillRect(cx - 16*scale, hy + 8*scale, 32*scale, 8*scale);
+  } else if(which === 'scarf'){
+    ctx.fillStyle = '#b354ff'; ctx.fillRect(cx - 22*scale, hy + 12*scale, 44*scale, 8*scale);
+  } else if(which === 'helmet'){
+    ctx.fillStyle = '#444'; roundRect(ctx, cx - hw*0.52, hy - 8*scale, hw*1.04, 14*scale, 6*scale); ctx.fill();
+  }
+}
 
-/* small utility random used above */
-function rand(min,max){ return min + Math.random()*(max-min); }
+/* update preview quickly */
+function refreshPreview(){
+  drawCharacterPreview();
+}
 
-/* expose state for debug */
-window._starIntro = { pointer, state, planets, STAR_LAYERS };
+/* wire up controls */
+const bodyColorEl = document.getElementById('bodyColor');
+const hairSelect = document.getElementById('hairSelect');
+const hairColorEl = document.getElementById('hairColor');
+const eyesSelect = document.getElementById('eyesSelect');
+const eyeColorEl = document.getElementById('eyeColor');
+const heightRange = document.getElementById('heightRange');
+const accSelect = document.getElementById('accSelect');
+const decScale = document.getElementById('decScale');
+const incScale = document.getElementById('incScale');
+const doneBtn = document.getElementById('doneBtn');
 
-/* initial meteors for life */
-for(let i=0;i<3;i++) spawnMeteor(off.width, off.height);
+bodyColorEl.addEventListener('input', e=> { stateChar.body = e.target.value; refreshPreview(); });
+hairSelect.addEventListener('change', e=> { stateChar.hairStyle = e.target.value; refreshPreview(); });
+hairColorEl.addEventListener('input', e=> { stateChar.hairColor = e.target.value; refreshPreview(); });
+eyesSelect.addEventListener('change', e=> { stateChar.eyes = e.target.value; refreshPreview(); });
+eyeColorEl.addEventListener('input', e=> { stateChar.eyeColor = e.target.value; refreshPreview(); });
+heightRange.addEventListener('input', e=> { stateChar.height = parseFloat(e.target.value); refreshPreview(); });
+accSelect.addEventListener('change', e=> { stateChar.accessory = e.target.value; refreshPreview(); });
+decScale.addEventListener('click', ()=> { stateChar.scale = Math.max(0.6, (stateChar.scale - 0.1)); refreshPreview(); });
+incScale.addEventListener('click', ()=> { stateChar.scale = Math.min(1.8, (stateChar.scale + 0.1)); refreshPreview(); });
+
+doneBtn.addEventListener('click', ()=> {
+  // for this prototype just hide customizer (in real app continue)
+  customizer.classList.remove('visible');
+});
+
+/* initial preview */
+refreshPreview();
+
+/* expose state for debugging in console */
+window._character = stateChar;
+window._starState = st;
+
+/* ensure fit is called to size offscreen correctly */
+fit();
 </script>
 </body>
 </html>
