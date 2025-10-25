@@ -4,45 +4,113 @@
   <meta charset="UTF-8">
   <title>Fake Website Maker</title>
   <style>
-    body { font-family: 'Press Start 2P', monospace; text-align: center; background: #111; color: #fff; }
-    .preview { margin-top: 20px; padding: 20px; border: 3px dashed #fff; }
-    .theme-retro { background: linear-gradient(45deg, #ff0080, #7928ca); }
-    .theme-corporate { background: #f0f0f0; color: #222; font-family: Arial, sans-serif; }
-    .theme-sakura { background: pink url('https://i.imgur.com/3ZQ3Z5L.png') repeat; color: #222; }
-    h1 { font-size: 2em; margin-bottom: 10px; }
-    .tagline { font-style: italic; margin: 10px 0; }
-    .nav { margin: 15px 0; }
-    .nav a { margin: 0 10px; text-decoration: none; color: inherit; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      margin: 0;
+      padding: 40px;
+    }
+    h1 { color: #fff; margin-bottom: 20px; }
+    .controls {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    input, select, button {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    button {
+      background: #667eea;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover { background: #5563c1; }
+    .preview {
+      margin-top: 30px;
+      width: 100%;
+      max-width: 600px;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      background: #fff;
+      animation: fadeIn 0.5s ease;
+    }
+    .navbar {
+      background: rgba(0,0,0,0.8);
+      color: #fff;
+      padding: 12px;
+      display: flex;
+      justify-content: space-around;
+      font-size: 14px;
+    }
+    .hero {
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .hero h2 { margin: 0; font-size: 24px; }
+    .tagline { margin: 10px 0; font-style: italic; color: #555; }
+    .cta {
+      margin-top: 20px;
+      display: inline-block;
+      padding: 10px 20px;
+      background: #667eea;
+      color: #fff;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
-  <h1>Fake Website Maker</h1>
-  <input id="sitename" placeholder="Enter site name..." />
-  <select id="theme">
-    <option value="retro">Retro Arcade</option>
-    <option value="corporate">Corporate Serious</option>
-    <option value="sakura">Romantic Sakura</option>
-  </select>
-  <button onclick="generate()">Generate!</button>
+  <h1>⚡ Fake Website Maker</h1>
+  <div class="controls">
+    <input id="sitename" placeholder="Enter site name..." />
+    <select id="theme">
+      <option value="modern">Modern Minimal</option>
+      <option value="cyberpunk">Cyberpunk Neon</option>
+      <option value="sakura">Sakura Bloom</option>
+    </select>
+    <button onclick="generate()">Generate</button>
+  </div>
 
-  <div id="preview" class="preview"></div>
+  <div id="preview"></div>
 
   <script>
     const jokes = {
-      retro: [
-        "Serving polygons since 1999!",
-        "Now with 8-bit flavor!",
-        "Powered by dial-up dreams."
+      modern: [
+        "Clean design. Dirty jokes.",
+        "Minimal effort, maximum vibes.",
+        "Now with 200% more whitespace."
       ],
-      corporate: [
-        "Synergizing your pizza solutions.",
-        "Maximizing shareholder toppings.",
-        "Our mission: deliver value (and crust)."
+      cyberpunk: [
+        "Pizza.exe has stopped responding.",
+        "Neon crusts, encrypted toppings.",
+        "Serving slices straight from the mainframe."
       ],
       sakura: [
-        "Blossoms fall, but our pizza is eternal.",
-        "A taste as fleeting as spring.",
-        "Mount Fuji approves this slice."
+        "Blossoms fall, calories rise.",
+        "A fleeting taste of spring.",
+        "Fuji-san says: one more slice."
       ]
     };
 
@@ -51,16 +119,20 @@
       const theme = document.getElementById('theme').value;
       const tagline = jokes[theme][Math.floor(Math.random() * jokes[theme].length)];
 
-      document.getElementById('preview').className = "preview theme-" + theme;
       document.getElementById('preview').innerHTML = `
-        <h1>${name}</h1>
-        <div class="tagline">${tagline}</div>
-        <div class="nav">
-          <a href="#">About Us</a> |
-          <a href="#">Order Now</a> |
-          <a href="#">Testimonials</a>
+        <div class="preview">
+          <div class="navbar">
+            <span>Home</span>
+            <span>Menu</span>
+            <span>About</span>
+            <span>Contact</span>
+          </div>
+          <div class="hero">
+            <h2>${name}</h2>
+            <div class="tagline">${tagline}</div>
+            <a href="#" class="cta">Order Now 🚀</a>
+          </div>
         </div>
-        <img src="https://placekitten.com/200/150" alt="funny placeholder" />
       `;
     }
   </script>
