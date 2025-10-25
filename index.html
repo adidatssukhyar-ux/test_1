@@ -5,8 +5,11 @@
   <title>The Lonely Voyager</title>
   <style>
     body { margin: 0; overflow: hidden; background: black; font-family: monospace; }
-    #menu {
+    #menu, #backBtn {
       position: absolute; top: 20px; left: 20px; color: #0f0;
+      font-family: monospace;
+    }
+    #menu {
       display: flex; flex-direction: column; align-items: flex-start;
     }
     #menu h1 {
@@ -14,7 +17,7 @@
       font-size: 28px;
       text-shadow: 0 0 5px #0f0;
     }
-    #menu button {
+    #menu button, #backBtn {
       margin: 10px 0;
       padding: 10px 20px;
       background: black;
@@ -25,10 +28,11 @@
       width: 200px;
       text-align: left;
     }
-    #menu button:hover {
+    #menu button:hover, #backBtn:hover {
       background: #0f0;
       color: black;
     }
+    #backBtn { display: none; }
   </style>
 </head>
 <body>
@@ -37,13 +41,13 @@
     <button id="exploreBtn">Explore the Solar System</button>
     <button id="rideBtn">Ride the Voyager</button>
   </div>
+  <button id="backBtn">← Back</button>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script>
-    // Scene + Camera
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 2000);
-    camera.position.set(0, 0, 250);
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 3000);
+    camera.position.set(0, 0, 300);
 
     const renderer = new THREE.WebGLRenderer({antialias:true});
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -51,13 +55,13 @@
 
     // Starfield
     const starGeo = new THREE.BufferGeometry();
-    const starCount = 2000;
+    const starCount = 3000;
     const positions = [];
     for (let i=0;i<starCount;i++){
       positions.push(
-        (Math.random()-0.5)*2000,
-        (Math.random()-0.5)*2000,
-        (Math.random()-0.5)*2000
+        (Math.random()-0.5)*3000,
+        (Math.random()-0.5)*3000,
+        (Math.random()-0.5)*3000
       );
     }
     starGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions,3));
@@ -66,10 +70,11 @@
     scene.add(stars);
 
     // Voyager model
+    const voyager = new THREE.Group();
     const bodyGeo = new THREE.BoxGeometry(8,6,6);
     const bodyMat = new THREE.MeshBasicMaterial({color:0x6688ff});
-    const voyager = new THREE.Mesh(bodyGeo, bodyMat);
-    scene.add(voyager);
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    voyager.add(body);
 
     const dishGeo = new THREE.CylinderGeometry(0,20,6,32,1,true);
     const dishMat = new THREE.MeshBasicMaterial({color:0xffffcc, side:THREE.DoubleSide});
@@ -78,24 +83,44 @@
     dish.position.set(18,0,0);
     voyager.add(dish);
 
-    // Solar system container (hidden at first)
+    const boomGeo = new THREE.CylinderGeometry(0.2,0.2,40,8);
+    const boomMat = new THREE.MeshBasicMaterial({color:0xffffff});
+    const boom = new THREE.Mesh(boomGeo, boomMat);
+    boom.rotation.z = Math.PI/2;
+    boom.position.set(-30,0,0);
+    voyager.add(boom);
+
+    const recordGeo = new THREE.CircleGeometry(2,32);
+    const recordMat = new THREE.MeshBasicMaterial({color:0xffd700});
+    const record = new THREE.Mesh(recordGeo, recordMat);
+    record.rotation.y = Math.PI/2;
+    record.position.set(0,0,3.5);
+    voyager.add(record);
+
+    scene.add(voyager);
+
+    // Solar system group
     const solarSystem = new THREE.Group();
     solarSystem.visible = false;
     scene.add(solarSystem);
 
     // Sun
-    const sunGeo = new THREE.SphereGeometry(20,32,32);
+    const sunGeo = new THREE.SphereGeometry(25,32,32);
     const sunMat = new THREE.MeshBasicMaterial({color:0xffcc00});
     const sun = new THREE.Mesh(sunGeo, sunMat);
     solarSystem.add(sun);
 
-    // Planets
+    // Planets with recognizable colors
     const planets = [];
     const planetData = [
-      {color:0xaaaaaa, dist:40, size:4, speed:0.01},
-      {color:0xff8800, dist:70, size:6, speed:0.008},
-      {color:0x2266ff, dist:100, size:6.5, speed:0.006},
-      {color:0xff3300, dist:130, size:5, speed:0.005}
+      {name:"Mercury", color:0xaaaaaa, dist:50, size:3, speed:0.02},
+      {name:"Venus", color:0xffaa33, dist:80, size:6, speed:0.015},
+      {name:"Earth", color:0x2266ff, dist:110, size:6.5, speed:0.012},
+      {name:"Mars", color:0xff3300, dist:140, size:5, speed:0.01},
+      {name:"Jupiter", color:0xd2b48c, dist:180, size:14, speed:0.008},
+      {name:"Saturn", color:0xffe4b5, dist:230, size:12, speed:0.006},
+      {name:"Uranus", color:0x66ccff, dist:270, size:10, speed:0.004},
+      {name:"Neptune", color:0x3333ff, dist:310, size:10, speed:0.003}
     ];
     planetData.forEach(data=>{
       const geo = new THREE.SphereGeometry(data.size,32,32);
@@ -104,18 +129,55 @@
       mesh.userData = data;
       solarSystem.add(mesh);
       planets.push(mesh);
+
+      // Orbit ring
+      const ringGeo = new THREE.RingGeometry(data.dist-0.2, data.dist+0.2, 128);
+      const ringMat = new THREE.MeshBasicMaterial({color:0x444444, side:THREE.DoubleSide});
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI/2;
+      solarSystem.add(ring);
     });
 
-    // Animate
     let exploring = false;
+    let driftingOut = false;
+    let driftingIn = false;
+
     function animate(){
       requestAnimationFrame(animate);
-
       stars.rotation.y += 0.0005;
 
-      if(!exploring){
+      if(!exploring && !driftingIn){
         voyager.rotation.y += 0.01;
-      } else {
+      }
+
+      if(driftingOut){
+        voyager.position.x += 2;
+        voyager.position.y += 0.5;
+        voyager.rotation.z += 0.05;
+        if(voyager.position.x > 200){
+          driftingOut = false;
+          voyager.visible = false;
+          solarSystem.visible = true;
+          exploring = true;
+          document.getElementById('backBtn').style.display = 'block';
+        }
+      }
+
+      if(driftingIn){
+        voyager.visible = true;
+        voyager.position.x -= 2;
+        voyager.position.y -= 0.5;
+        voyager.rotation.z -= 0.05;
+        if(voyager.position.x <= 0){
+          driftingIn = false;
+          exploring = false;
+          voyager.position.set(0,0,0);
+          voyager.rotation.set(0,0,0);
+          document.getElementById('menu').style.display = 'flex';
+        }
+      }
+
+      if(exploring){
         sun.rotation.y += 0.002;
         planets.forEach((p,i)=>{
           const d = p.userData.dist;
@@ -130,23 +192,16 @@
     }
     animate();
 
-    // Button click
+    // Buttons
     document.getElementById('exploreBtn').addEventListener('click', ()=>{
       document.getElementById('menu').style.display = 'none';
-      // Animate voyager drifting away
-      let t=0;
-      const drift = setInterval(()=>{
-        t+=1;
-        voyager.position.x += 2;
-        voyager.position.y += 0.5;
-        voyager.rotation.z += 0.05;
-        if(t>50){
-          clearInterval(drift);
-          voyager.visible = false;
-          solarSystem.visible = true;
-          exploring = true;
-        }
-      },30);
+      driftingOut = true;
+    });
+
+    document.getElementById('backBtn').addEventListener('click', ()=>{
+      document.getElementById('backBtn').style.display = 'none';
+      solarSystem.visible = false;
+      driftingIn = true;
     });
 
     window.addEventListener('resize', ()=>{
@@ -157,3 +212,4 @@
   </script>
 </body>
 </html>
+``
