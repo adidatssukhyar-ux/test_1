@@ -2,12 +2,40 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Hello Three.js</title>
+  <title>The Lonely Voyager</title>
   <style>
-    body { margin: 0; overflow: hidden; background: black; }
+    body { margin: 0; overflow: hidden; background: black; font-family: monospace; }
+    #menu {
+      position: absolute; top: 20px; left: 20px; color: #0f0;
+    }
+    #menu h1 {
+      margin: 0 0 20px 0;
+      font-size: 28px;
+      text-shadow: 0 0 5px #0f0;
+    }
+    #menu button {
+      display: block;
+      margin: 10px 0;
+      padding: 10px 20px;
+      background: black;
+      color: #0f0;
+      border: 1px solid #0f0;
+      cursor: pointer;
+      font-family: monospace;
+    }
+    #menu button:hover {
+      background: #0f0;
+      color: black;
+    }
   </style>
 </head>
 <body>
+  <div id="menu">
+    <h1>The Lonely Voyager</h1>
+    <button id="exploreBtn">Explore the Solar System</button>
+    <button id="rideBtn">Ride the Voyager</button>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
   <script>
     // Scene + Camera
@@ -15,29 +43,21 @@
     const camera = new THREE.PerspectiveCamera(
       60, window.innerWidth / window.innerHeight, 0.1, 2000
     );
-    camera.position.set(0, 0, 50);
-    camera.lookAt(0, 0, 0);
+    camera.position.set(0, 0, 200);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x111133); // dark blue background
     document.body.appendChild(renderer.domElement);
 
-    // Test cube
-    const cubeGeo = new THREE.BoxGeometry(10, 10, 10);
-    const cubeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-    const cube = new THREE.Mesh(cubeGeo, cubeMat);
-    scene.add(cube);
-
-    // Starfield
+    // Starfield background
     const starGeo = new THREE.BufferGeometry();
-    const starCount = 1000;
+    const starCount = 3000;
     const positions = [];
     for (let i = 0; i < starCount; i++) {
       positions.push(
-        (Math.random() - 0.5) * 1000,
-        (Math.random() - 0.5) * 1000,
-        (Math.random() - 0.5) * 1000
+        (Math.random() - 0.5) * 2000,
+        (Math.random() - 0.5) * 2000,
+        (Math.random() - 0.5) * 2000
       );
     }
     starGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -45,16 +65,28 @@
     const stars = new THREE.Points(starGeo, starMat);
     scene.add(stars);
 
-    // Animate
+    // Animate starfield
     function animate() {
       requestAnimationFrame(animate);
-      cube.rotation.x += 0.01;
-      cube.rotation.y += 0.01;
+      stars.rotation.y += 0.0005;
       renderer.render(scene, camera);
     }
     animate();
 
-    // Resize
+    // Handle button click
+    document.getElementById('exploreBtn').addEventListener('click', () => {
+      document.getElementById('menu').style.display = 'none';
+      startSolarSystem();
+    });
+
+    function startSolarSystem() {
+      // For now, just add a placeholder planet
+      const planetGeo = new THREE.SphereGeometry(20, 32, 32);
+      const planetMat = new THREE.MeshBasicMaterial({ color: 0x2266ff });
+      const planet = new THREE.Mesh(planetGeo, planetMat);
+      scene.add(planet);
+    }
+
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
