@@ -6,45 +6,57 @@
   <style>
     body {
       margin: 0;
-      font-family: 'Courier New', monospace;
-      background: #0a0a0f;
-      color: #eee;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      color: #f5f5f5;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      height: 100vh;
-      overflow: hidden;
+      min-height: 100vh;
     }
     header {
-      margin: 20px;
-      font-size: 1.5em;
+      margin: 30px 0 10px;
+      font-size: 2em;
+      font-weight: 700;
       letter-spacing: 2px;
     }
     #controls {
-      margin: 10px;
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
     }
     input {
-      padding: 6px;
+      padding: 10px;
       font-size: 1em;
-      width: 120px;
+      border-radius: 6px;
+      border: none;
+      outline: none;
+      width: 140px;
       text-align: center;
     }
     button {
-      padding: 6px 12px;
-      margin-left: 6px;
-      background: #222;
-      color: #eee;
-      border: 1px solid #555;
+      padding: 10px 16px;
+      border-radius: 6px;
+      border: none;
+      background: #1e90ff;
+      color: #fff;
+      font-weight: 600;
       cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #4682b4;
     }
     #history {
-      margin-top: 20px;
+      margin-top: 10px;
       padding: 20px;
-      width: 60%;
+      width: 70%;
+      max-width: 700px;
       min-height: 150px;
-      background: rgba(255,255,255,0.05);
-      border-radius: 8px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
       opacity: 0;
       transform: translateY(20px);
       transition: all 0.5s ease;
@@ -55,17 +67,18 @@
     }
     #bookmarks {
       margin-top: 20px;
-      width: 60%;
-      max-height: 200px;
-      overflow-y: auto;
+      width: 70%;
+      max-width: 700px;
       background: rgba(255,255,255,0.05);
-      border-radius: 8px;
+      border-radius: 12px;
       padding: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     }
     .bookmark {
       cursor: pointer;
-      padding: 4px;
-      border-bottom: 1px solid #333;
+      padding: 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      transition: background 0.2s;
     }
     .bookmark:hover {
       background: rgba(255,255,255,0.1);
@@ -80,17 +93,22 @@
     <button id="bookmarkBtn">Bookmark</button>
   </div>
   <div id="history"></div>
-  <div id="bookmarks"></div>
+  <div id="bookmarks"><strong>Bookmarks:</strong></div>
 
   <script>
-    // Sample dataset (expand this with more years!)
+    // Expanded dataset
     const historyData = {
+      476: "Fall of the Western Roman Empire, marking the start of the European Middle Ages.",
+      1066: "The Norman conquest of England after the Battle of Hastings.",
       1347: "The Black Death begins spreading across Europe, reshaping societies.",
       1492: "Christopher Columbus reaches the Americas, linking two worlds.",
-      1776: "The United States declares independence.",
+      1776: "The United States declares independence from Britain.",
+      1789: "The French Revolution begins, challenging monarchy and reshaping Europe.",
       1914: "World War I erupts, pulling nations into global conflict.",
+      1939: "World War II begins with Germany’s invasion of Poland.",
       1969: "Apollo 11 lands on the Moon. Humanity takes its first steps beyond Earth.",
       1989: "The Berlin Wall falls, symbolizing the end of the Cold War.",
+      2001: "September 11 attacks in the United States reshape global politics.",
       2020: "A global pandemic reshapes daily life and accelerates digital change."
     };
 
