@@ -481,8 +481,14 @@
 
     <footer>Made for rapid iteration. Swap in pixel sprites later for full anime vibes.</footer>
   </div>
+    <!-- === Audio Effects === -->
+  <audio id="sfxPunch" src="punch.mp3"></audio>
+  <audio id="sfxStrength" src="superstrength.mp3"></audio> <!-- Saitama Serious Punch -->
+  <audio id="sfxNova" src="supernova.mp3"></audio>
+  <audio id="sfxMeteor" src="meteor.mp3"></audio>
+  <audio id="sfxBlackhole" src="blackhole.mp3"></audio>
 
- <script>
+<script>
   // ===== Game State =====
   const state = {
     energy: 0,
@@ -509,6 +515,13 @@
   const pow        = document.getElementById('pow');
   const powersList = document.getElementById('powersList');
   const objectsEl  = document.getElementById('objects');
+
+  // ===== Audio Refs =====
+  const sfxPunch     = document.getElementById('sfxPunch');
+  const sfxStrength  = document.getElementById('sfxStrength'); // Saitama Serious Punch
+  const sfxNova      = document.getElementById('sfxNova');
+  const sfxMeteor    = document.getElementById('sfxMeteor');
+  const sfxBlackhole = document.getElementById('sfxBlackhole');
 
   // ===== Init =====
   function initUI() {
@@ -537,32 +550,41 @@
   initUI();
   updateHUD();
 
-  // ===== Main Click Loop =====
-  clickBtn.addEventListener('click', () => {
+  // ===== Input Bindings =====
+  clickBtn.addEventListener('click', handleClick);
+  document.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'e') handleClick();
+  });
+
+  // ===== Main Click Logic =====
+  function handleClick() {
     state.energy += 1;
     updateProgress();
 
     const level = state.level;
     if (level === 0) {
       impactPunch();
+      sfxPunch.play();
       damageClosest('wall', 1);
     } else if (level === 1) {
       impactSuperStrength();
+      sfxStrength.play(); // plays Saitama Serious Punch
       damageClosest('building', 2);
     } else if (level === 2) {
       impactSupernova();
+      sfxNova.play();
       destroyRandomBig();
     } else if (level === 3) {
       impactSuperStrength();
       showBanner('METEOR RAIN!');
-      console.log("Meteor Rain triggered");
+      sfxMeteor.play();
       meteorRain();
       destroyRandomBig();
       destroyRandomBig();
     } else if (level >= 4) {
       impactSuperStrength();
       showBanner('BLACK HOLE!');
-      console.log("Black Hole triggered");
+      sfxBlackhole.play();
       blackHole();
       [...objectsEl.querySelectorAll('.obj')].forEach(o => {
         o.classList.add('destroy');
@@ -571,7 +593,7 @@
     }
 
     autoSceneGrowth();
-  });
+  }
 
   // ===== HUD & Progress =====
   function updateProgress() {
@@ -651,7 +673,6 @@
     showBanner('SUPER★NOVA');
   }
 
-  // Meteor Rain Effect
   function meteorRain() {
     for (let i = 0; i < 6; i++) {
       const meteor = document.createElement('div');
@@ -664,7 +685,6 @@
     }
   }
 
-  // Black Hole Effect
   function blackHole() {
     const hole = document.createElement('div');
     hole.className = 'blackhole';
