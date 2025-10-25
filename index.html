@@ -363,6 +363,44 @@
       .app { grid-template-columns: 1fr; }
       .sidebar { order: 2; }
     }
+    /* === Meteor Rain Effect === */
+.meteor {
+  position: absolute;
+  top: -40px;
+  width: 12px;
+  height: 40px;
+  background: linear-gradient(to bottom, #ff9933, #ff3300);
+  border-radius: 4px;
+  animation: fall 1s linear forwards;
+  pointer-events: none;
+  z-index: 10;
+}
+@keyframes fall {
+  0%   { transform: translateY(0) rotate(45deg); opacity: 1; }
+  100% { transform: translateY(120vh) rotate(45deg); opacity: 0; }
+}
+
+/* === Black Hole Effect === */
+.blackhole {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 200px;
+  height: 200px;
+  margin-left: -100px;
+  margin-top: -100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #000 60%, #4b0082 100%);
+  box-shadow: 0 0 40px 20px rgba(75,0,130,0.6);
+  animation: pulse 1.5s ease-out forwards;
+  z-index: 20;
+}
+@keyframes pulse {
+  0%   { transform: scale(0.2); opacity: 0; }
+  50%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0; }
+}
+
   </style>
 </head>
 <body>
