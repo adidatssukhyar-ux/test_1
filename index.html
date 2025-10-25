@@ -443,242 +443,201 @@
     <footer>Made for rapid iteration. Swap in pixel sprites later for full anime vibes.</footer>
   </div>
 
-  <script>
-    // ===== Game State =====
-    const state = {
-      energy: 0,
-      level: 0,
-      nextUnlock: 100,
-      powers: [
-        { id: 1, name: "Punch", threshold: 100, desc: "Basic impact. Cracks walls.", fx: "pow" },
-        { id: 2, name: "Super Strength Punch", threshold: 200, desc: "Heavy hit + screen shake.", fx: "shake" },
-        { id: 3, name: "Supernova", threshold: 300, desc: "Massive flash. Destroys big structures.", fx: "flash" },
-        { id: 4, name: "Meteor Rain", threshold: 400, desc: "Multiple impacts across the scene.", fx: "meteor" },
-        { id: 5, name: "Micro Black Hole", threshold: 500, desc: "Sucks smaller objects into void.", fx: "blackhole" }
-      ],
-      unlockedPowerIds: []
-    };
+ <script>
+  // ===== Game State =====
+  const state = {
+    energy: 0,
+    level: 0,
+    powers: [
+      { id: 1, name: "Punch", threshold: 100 },
+      { id: 2, name: "Super Strength Punch", threshold: 200 },
+      { id: 3, name: "Supernova", threshold: 300 },
+      { id: 4, name: "Meteor Rain", threshold: 400 },
+      { id: 5, name: "Black Hole", threshold: 500 }
+    ],
+    unlockedPowerIds: []
+  };
 
-    // ===== DOM refs =====
-    const clickBtn   = document.getElementById('clickBtn');
-    const energyVal  = document.getElementById('energyVal');
-    const levelVal   = document.getElementById('levelVal');
-    const nextVal    = document.getElementById('nextVal');
-    const energyTop  = document.getElementById('energyTop');
-    const barFill    = document.getElementById('barFill');
-    const barLabel   = document.getElementById('barLabel');
-    const banner     = document.getElementById('banner');
-    const flash      = document.getElementById('flash');
-    const pow        = document.getElementById('pow');
-    const powersList = document.getElementById('powersList');
-    const objectsEl  = document.getElementById('objects');
+  // ===== DOM Refs =====
+  const clickBtn   = document.getElementById('clickBtn');
+  const energyVal  = document.getElementById('energyVal');
+  const levelVal   = document.getElementById('levelVal');
+  const nextVal    = document.getElementById('nextVal');
+  const energyTop  = document.getElementById('energyTop');
+  const barFill    = document.getElementById('barFill');
+  const banner     = document.getElementById('banner');
+  const flash      = document.getElementById('flash');
+  const pow        = document.getElementById('pow');
+  const powersList = document.getElementById('powersList');
+  const objectsEl  = document.getElementById('objects');
 
-    // ===== Init =====
-    function initUI() {
-      // Populate powers list
-      powersList.innerHTML = '';
-      state.powers.forEach(p => {
-        const row = document.createElement('div');
-        row.className = 'power';
-        row.dataset.id = p.id;
-        row.innerHTML = `
-          <div>${p.name}</div>
-          <div>${p.threshold}</div>
-        `;
-        powersList.appendChild(row);
-      });
+  // ===== Init =====
+  function initUI() {
+    powersList.innerHTML = '';
+    state.powers.forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'power';
+      row.dataset.id = p.id;
+      row.innerHTML = `<div>${p.name}</div><div>${p.threshold}</div>`;
+      powersList.appendChild(row);
+    });
+    objectsEl.innerHTML = '';
+    addObject('wall');
+    addObject('building');
+  }
 
-      // Populate scene objects
-      // Early game: wall, building; later: skyscraper appears on level 2+
-      objectsEl.innerHTML = '';
-      addObject('wall');
-      addObject('building');
-    }
+  function addObject(type) {
+    const obj = document.createElement('div');
+    obj.className = `obj ${type}`;
+    obj.dataset.type = type;
+    obj.dataset.hp = type === 'wall' ? 2 : type === 'building' ? 4 : 6;
+    obj.innerHTML = `<div class="crack"></div>`;
+    objectsEl.appendChild(obj);
+  }
 
-    function addObject(type) {
-      const obj = document.createElement('div');
-      obj.className = `obj ${type}`;
-      obj.dataset.type = type;
-      obj.dataset.hp = type === 'wall' ? 2 : type === 'building' ? 4 : 6;
-      obj.innerHTML = `<div class="crack"></div>`;
-      objectsEl.appendChild(obj);
-    }
+  initUI();
+  updateHUD();
 
-    initUI();
-    updateHUD();
-
-    // ===== Main Click Loop =====
+  // ===== Main Click Loop =====
   clickBtn.addEventListener('click', () => {
-  state.energy += 1;
-  updateProgress();
+    state.energy += 1;
+    updateProgress();
 
-  const level = state.level;
-  if (level === 0) {
-    impactPunch();
-    damageClosest('wall', 1);
-  } else if (level === 1) {
-    impactSuperStrength();
-    damageClosest('building', 2);
-  } else if (level === 2) {
-    impactSupernova();
-    destroyRandomBig();
-  } else if (level === 3) {
-    impactSuperStrength();
-    showBanner('METEOR RAIN!');
-    destroyRandomBig();
-    destroyRandomBig();
-  } else if (level >= 4) {
-    impactSuperStrength();
-    showBanner('BLACK HOLE!');
-    [...objectsEl.querySelectorAll('.obj')].forEach(o => {
-      o.classList.add('destroy');
-      setTimeout(() => o.remove(), 560);
+    const level = state.level;
+    if (level === 0) {
+      impactPunch();
+      damageClosest('wall', 1);
+    } else if (level === 1) {
+      impactSuperStrength();
+      damageClosest('building', 2);
+    } else if (level === 2) {
+      impactSupernova();
+      destroyRandomBig();
+    } else if (level === 3) {
+      impactSuperStrength();
+      showBanner('METEOR RAIN!');
+      destroyRandomBig();
+      destroyRandomBig();
+    } else if (level >= 4) {
+      impactSuperStrength();
+      showBanner('BLACK HOLE!');
+      [...objectsEl.querySelectorAll('.obj')].forEach(o => {
+        o.classList.add('destroy');
+        setTimeout(() => o.remove(), 560);
+      });
+    }
+
+    autoSceneGrowth();
+  });
+
+  // ===== HUD & Progress =====
+  function updateProgress() {
+    energyVal.textContent = state.energy;
+    energyTop.textContent = state.energy;
+    const progressInTier = state.energy % 100;
+    barFill.style.width = progressInTier + '%';
+    if (state.energy >= (state.level + 1) * 100) {
+      levelUp();
+    }
+    nextVal.textContent = ((state.level + 1) * 100);
+  }
+
+  function updateHUD() {
+    energyVal.textContent = state.energy;
+    levelVal.textContent = state.level;
+    energyTop.textContent = state.energy;
+    nextVal.textContent = ((state.level + 1) * 100);
+    const progressInTier = state.energy % 100;
+    barFill.style.width = progressInTier + '%';
+    refreshPowersList();
+  }
+
+  // ===== Level Up =====
+  function levelUp() {
+    state.level += 1;
+    levelVal.textContent = state.level;
+    const power = state.powers.find(p => p.threshold === state.level * 100);
+    if (power && !state.unlockedPowerIds.includes(power.id)) {
+      state.unlockedPowerIds.push(power.id);
+      showBanner(`Unlocked: ${power.name}`);
+    } else {
+      showBanner(`LEVEL ${state.level}`);
+    }
+    refreshPowersList();
+    if (state.level === 1) addObject('building');
+    if (state.level === 2) addObject('skyscraper');
+  }
+
+  function refreshPowersList() {
+    [...powersList.children].forEach(row => {
+      const id = Number(row.dataset.id);
+      if (state.unlockedPowerIds.includes(id)) {
+        row.classList.add('unlocked');
+      } else {
+        row.classList.remove('unlocked');
+      }
     });
   }
 
-  autoSceneGrowth();
-});
+  // ===== Effects =====
+  function showBanner(text) {
+    banner.textContent = text;
+    banner.classList.remove('show');
+    void banner.offsetWidth;
+    banner.classList.add('show');
+  }
 
+  function impactPunch() {
+    pow.textContent = 'POW!';
+    pow.classList.remove('show');
+    void pow.offsetWidth;
+    pow.classList.add('show');
+  }
 
-      // Auto-spawn new structures as we progress
-      autoSceneGrowth();
-    });
+  function impactSuperStrength() {
+    impactPunch();
+    clickBtn.parentElement.classList.remove('shake');
+    void clickBtn.parentElement.offsetWidth;
+    clickBtn.parentElement.classList.add('shake');
+  }
 
-    // ===== HUD & Progress =====
-    function updateProgress() {
-      energyVal.textContent = state.energy;
-      energyTop.textContent = state.energy;
+  function impactSupernova() {
+    flash.classList.remove('show');
+    void flash.offsetWidth;
+    flash.classList.add('show');
+    showBanner('SUPER★NOVA');
+  }
 
-      const progressInTier = state.energy % 100;
-      const target = ((state.level + 1) * 100);
-      barFill.style.width = (progressInTier) + '%';
-      barLabel.textContent = `${progressInTier} / 100`;
-
-      if (state.energy >= target) {
-        levelUp();
-      }
-      nextVal.textContent = ((state.level + 1) * 100);
-    }
-
-    function updateHUD() {
-      energyVal.textContent = state.energy;
-      levelVal.textContent = state.level;
-      energyTop.textContent = state.energy;
-      nextVal.textContent = ((state.level + 1) * 100);
-      const progressInTier = state.energy % 100;
-      barFill.style.width = progressInTier + '%';
-      barLabel.textContent = `${progressInTier} / 100`;
-      refreshPowersList();
-    }
-
-    // ===== Level Up =====
-    function levelUp() {
-      state.level += 1;
-      levelVal.textContent = state.level;
-
-      // Unlock power at exact threshold
-      const power = state.powers.find(p => p.threshold === state.level * 100);
-      if (power && !state.unlockedPowerIds.includes(power.id)) {
-        state.unlockedPowerIds.push(power.id);
-        showBanner(`Unlocked: ${power.name}`);
-      } else {
-        showBanner(`LEVEL ${state.level}`);
-      }
-      refreshPowersList();
-
-      // New objects at certain levels
-      if (state.level === 1) addObject('building');
-      if (state.level === 2) addObject('skyscraper');
-    }
-
-    function refreshPowersList() {
-      [...powersList.children].forEach(row => {
-        const id = Number(row.dataset.id);
-        if (state.unlockedPowerIds.includes(id)) {
-          row.classList.add('unlocked');
-        } else {
-          row.classList.remove('unlocked');
-        }
-      });
-    }
-
-    // ===== Effects =====
-    function showBanner(text) {
-      banner.textContent = text;
-      banner.classList.remove('show');
-      void banner.offsetWidth; // reflow
-      banner.classList.add('show');
-    }
-
-    function impactPunch() {
-      // "POW!" text
-      pow.textContent = 'POW!';
-      pow.classList.remove('show');
-      void pow.offsetWidth;
-      pow.classList.add('show');
-    }
-
-    function impactSuperStrength() {
-      // "POW!" plus shake
-      impactPunch();
-      clickBtn.parentElement.classList.remove('shake');
-      void clickBtn.parentElement.offsetWidth;
-      clickBtn.parentElement.classList.add('shake');
-    }
-
-    function impactSupernova() {
-      // Big flash
-      flash.classList.remove('show');
-      void flash.offsetWidth;
-      flash.classList.add('show');
-      showBanner('SUPER★NOVA');
-    }
-
-    // ===== Scene Damage / Destruction =====
-    function damageClosest(type, dmg = 1) {
-      const candidates = [...objectsEl.querySelectorAll(`.obj.${type}:not(.destroy)`)];
-      if (!candidates.length) return;
-      const target = candidates[0];
-      const hp = Number(target.dataset.hp) - dmg;
-      target.dataset.hp = hp;
-      target.classList.add('hit');
-
-      if (hp <= 0) {
-        target.classList.add('destroy');
-        setTimeout(() => target.remove(), 560);
-      }
-    }
-
-    function destroyRandomBig() {
-      const bigs = [...objectsEl.querySelectorAll('.obj.skyscraper, .obj.building')].filter(el => !el.classList.contains('destroy'));
-      if (!bigs.length) return;
-      const target = bigs[Math.floor(Math.random() * bigs.length)];
+  // ===== Scene Damage / Destruction =====
+  function damageClosest(type, dmg = 1) {
+    const candidates = [...objectsEl.querySelectorAll(`.obj.${type}:not(.destroy)`)];
+    if (!candidates.length) return;
+    const target = candidates[0];
+    const hp = Number(target.dataset.hp) - dmg;
+    target.dataset.hp = hp;
+    target.classList.add('hit');
+    if (hp <= 0) {
       target.classList.add('destroy');
       setTimeout(() => target.remove(), 560);
     }
+  }
 
-    function autoSceneGrowth() {
-      const countWalls = objectsEl.querySelectorAll('.obj.wall').length;
-      const countBuildings = objectsEl.querySelectorAll('.obj.building').length;
-      const countSkyscrapers = objectsEl.querySelectorAll('.obj.skyscraper').length;
+  function destroyRandomBig() {
+    const bigs = [...objectsEl.querySelectorAll('.obj.skyscraper, .obj.building')].filter(el => !el.classList.contains('destroy'));
+    if (!bigs.length) return;
+    const target = bigs[Math.floor(Math.random() * bigs.length)];
+    target.classList.add('destroy');
+    setTimeout(() => target.remove(), 560);
+  }
 
-      // keep some objects around for satisfying hits
-      if (countWalls < 2) addObject('wall');
-      if (state.level >= 1 && countBuildings < 2) addObject('building');
-      if (state.level >= 2 && countSkyscrapers < 1) addObject('skyscraper');
-    }
-
-    // ===== Keyboard shortcuts (optional) =====
-    document.addEventListener('keydown', (e) => {
-      if (e.key.toLowerCase() === ' ') {
-        e.preventDefault();
-        clickBtn.click();
-      }
-    });
-
-    // ===== Idle boost (optional preview) =====
-    // Uncomment to enable slow passive energy
-    // setInterval(() => { state.energy += 1; updateProgress(); }, 2500);
-  </script>
+  function autoSceneGrowth() {
+    const countWalls = objectsEl.querySelectorAll('.obj.wall').length;
+    const countBuildings = objectsEl.querySelectorAll('.obj.building').length;
+    const countSkyscrapers = objectsEl.querySelectorAll('.obj.skyscraper').length;
+    if (countWalls < 2) addObject('wall');
+    if (state.level >= 1 && countBuildings < 2) addObject('building');
+    if (state.level >= 2 && countSkyscrapers < 1) addObject('skyscraper');
+  }
+</script>
 </body>
 </html>
