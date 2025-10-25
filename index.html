@@ -555,11 +555,15 @@
     } else if (level === 3) {
       impactSuperStrength();
       showBanner('METEOR RAIN!');
+      console.log("Meteor Rain triggered");
+      meteorRain();
       destroyRandomBig();
       destroyRandomBig();
     } else if (level >= 4) {
       impactSuperStrength();
       showBanner('BLACK HOLE!');
+      console.log("Black Hole triggered");
+      blackHole();
       [...objectsEl.querySelectorAll('.obj')].forEach(o => {
         o.classList.add('destroy');
         setTimeout(() => o.remove(), 560);
@@ -645,6 +649,28 @@
     void flash.offsetWidth;
     flash.classList.add('show');
     showBanner('SUPER★NOVA');
+  }
+
+  // Meteor Rain Effect
+  function meteorRain() {
+    for (let i = 0; i < 6; i++) {
+      const meteor = document.createElement('div');
+      meteor.className = 'meteor';
+      meteor.style.left = Math.random() * window.innerWidth + 'px';
+      meteor.style.animationDelay = (i * 0.2) + 's';
+      meteor.style.zIndex = 9999;
+      document.body.appendChild(meteor);
+      setTimeout(() => meteor.remove(), 2000);
+    }
+  }
+
+  // Black Hole Effect
+  function blackHole() {
+    const hole = document.createElement('div');
+    hole.className = 'blackhole';
+    hole.style.zIndex = 9999;
+    document.body.appendChild(hole);
+    setTimeout(() => hole.remove(), 2000);
   }
 
   // ===== Scene Damage / Destruction =====
