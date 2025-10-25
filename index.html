@@ -557,40 +557,84 @@
   });
 
   // ===== Main Click Logic =====
-  function handleClick() {
-    state.energy += 2;
-    updateProgress();
+ // Combo tracking
+let comboCount = 0;
+let lastClickTime = 0;
 
-    const level = state.level;
-    if (level === 0) {
-      impactPunch();
-      sfxPunch.play();
-      damageClosest('wall', 1);
-    } else if (level === 1) {
-      impactSuperStrength();
-      sfxStrength.play(); // plays Saitama Serious Punch
-      damageClosest('building', 2);
-    } else if (level === 2) {
-      impactSupernova();
-      sfxNova.play();
-      destroyRandomBig();
-    } else if (level === 3) {
-      impactSuperStrength();
-      showBanner('METEOR RAIN!');
-      sfxMeteor.play();
-      meteorRain();
-      destroyRandomBig();
-      destroyRandomBig();
-    } else if (level >= 4) {
-      impactSuperStrength();
-      showBanner('BLACK HOLE!');
-      sfxBlackhole.play();
-      blackHole();
-      [...objectsEl.querySelectorAll('.obj')].forEach(o => {
-        o.classList.add('destroy');
-        setTimeout(() => o.remove(), 560);
-      });
-    }
+function handleClick() {
+  const now = Date.now();
+
+  // === Combo Logic ===
+  if (now - lastClickTime < 1000) {
+    comboCount++;
+  } else {
+    comboCount = 0;
+  }
+  lastClickTime = now;
+
+  // Base energy gain (2 per click + combo bonus)
+  let energyGain = 2 + comboCount;
+
+  // === Critical Hit Logic ===
+  if (Math.random() < 0.15) { // 15% chance
+    energyGain *= 2;
+    showBanner('CRIT!!');
+    pow.textContent = 'CRIT!!';
+    pow.classList.remove('show');
+    void pow.offsetWidth;
+    pow.classList.add('show');
+  }
+
+  // Apply energy gain
+  state.energy += energyGain;
+  updateProgress();
+
+  // === Level-based Effects ===
+  const level = state.level;
+  if (level === 0) {
+    impactPunch();
+    sfxPunch.play();
+    damageClosest('wall', 1);
+  } else if (level === 1) {
+    impactSuperStrength();
+    sfxStrength.play();
+    sfxStrength.onended = () => {
+      sfxEpic.play();
+      setTimeout(() => {
+        sfxEpic.pause();
+        sfxEpic.currentTime = 0;
+      }, 15000); // stop epic music after 15s
+    };
+    damageClosest('building', 2);
+  } else if (level === 2) {
+    impactSupernova();
+    destroyRandomBig();
+  } else if (level === 3) {
+    impactSuperStrength();
+    showBanner('METEOR RAIN!');
+    sfxMeteor.play();
+    meteorRain();
+    destroyRandomBig();
+    destroyRandomBig();
+  } else if (level >= 4) {
+    impactSuperStrength();
+    showBanner('BLACK HOLE!');
+    sfxBlackhole.play();
+    blackHole();
+    [...objectsEl.querySelectorAll('.obj')].forEach(o => {
+      o.classList.add('destroy');
+      setTimeout(() => o.remove(), 560);
+    });
+  }
+
+  // === Update Combo Meter Display ===
+  const comboMeter = document.getElementById('comboMeter');
+  if (comboMeter) {
+    comboMeter.textContent = `Combo: ${comboCount}`;
+  }
+
+  autoSceneGrowth();
+}
 
     autoSceneGrowth();
   }
