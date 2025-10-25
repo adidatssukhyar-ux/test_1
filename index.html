@@ -2,156 +2,118 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Time Atlas</title>
+  <title>Pixel Clicker</title>
   <style>
     body {
       margin: 0;
       font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      background: linear-gradient(135deg, #1e1e2f, #2c5364);
       color: #f5f5f5;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
-      min-height: 100vh;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
     }
-    header {
-      margin: 30px 0 10px;
+    h1 {
+      margin-bottom: 20px;
       font-size: 2em;
-      font-weight: 700;
       letter-spacing: 2px;
     }
-    #controls {
+    #clicker {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #1e90ff, #4682b4);
       display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5em;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(30,144,255,0.7);
+      transition: transform 0.1s ease;
+      user-select: none;
+    }
+    #clicker:active {
+      transform: scale(0.9);
+    }
+    #score {
+      margin-top: 20px;
+      font-size: 1.5em;
+    }
+    #upgrades {
+      margin-top: 30px;
+      display: flex;
+      flex-direction: column;
       gap: 10px;
-      margin-bottom: 20px;
     }
-    input {
+    .upgrade {
+      background: rgba(255,255,255,0.1);
+      border: none;
+      border-radius: 6px;
       padding: 10px;
-      font-size: 1em;
-      border-radius: 6px;
-      border: none;
-      outline: none;
-      width: 140px;
-      text-align: center;
-    }
-    button {
-      padding: 10px 16px;
-      border-radius: 6px;
-      border: none;
-      background: #1e90ff;
       color: #fff;
-      font-weight: 600;
       cursor: pointer;
       transition: background 0.3s;
     }
-    button:hover {
-      background: #4682b4;
-    }
-    #history {
-      margin-top: 10px;
-      padding: 20px;
-      width: 70%;
-      max-width: 700px;
-      min-height: 150px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-      opacity: 0;
-      transform: translateY(20px);
-      transition: all 0.5s ease;
-    }
-    #history.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    #bookmarks {
-      margin-top: 20px;
-      width: 70%;
-      max-width: 700px;
-      background: rgba(255,255,255,0.05);
-      border-radius: 12px;
-      padding: 10px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-    }
-    .bookmark {
-      cursor: pointer;
-      padding: 6px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      transition: background 0.2s;
-    }
-    .bookmark:hover {
-      background: rgba(255,255,255,0.1);
+    .upgrade:hover {
+      background: rgba(255,255,255,0.2);
     }
   </style>
 </head>
 <body>
-  <header>🕰️ Time Atlas</header>
-  <div id="controls">
-    <input type="number" id="yearInput" placeholder="Enter year">
-    <button id="goBtn">Explore</button>
-    <button id="bookmarkBtn">Bookmark</button>
+  <h1>⚡ Pixel Clicker ⚡</h1>
+  <div id="clicker">Click!</div>
+  <div id="score">Score: 0</div>
+  <div id="upgrades">
+    <button class="upgrade" id="autoClick">Buy Auto‑Clicker (Cost: 50)</button>
+    <button class="upgrade" id="doubleClick">Buy Double Click (Cost: 100)</button>
   </div>
-  <div id="history"></div>
-  <div id="bookmarks"><strong>Bookmarks:</strong></div>
 
   <script>
-    // Expanded dataset
-    const historyData = {
-      476: "Fall of the Western Roman Empire, marking the start of the European Middle Ages.",
-      1066: "The Norman conquest of England after the Battle of Hastings.",
-      1347: "The Black Death begins spreading across Europe, reshaping societies.",
-      1492: "Christopher Columbus reaches the Americas, linking two worlds.",
-      1776: "The United States declares independence from Britain.",
-      1789: "The French Revolution begins, challenging monarchy and reshaping Europe.",
-      1914: "World War I erupts, pulling nations into global conflict.",
-      1939: "World War II begins with Germany’s invasion of Poland.",
-      1969: "Apollo 11 lands on the Moon. Humanity takes its first steps beyond Earth.",
-      1989: "The Berlin Wall falls, symbolizing the end of the Cold War.",
-      2001: "September 11 attacks in the United States reshape global politics.",
-      2020: "A global pandemic reshapes daily life and accelerates digital change."
-    };
+    let score = 0;
+    let clickValue = 1;
+    let autoClickers = 0;
 
-    const yearInput = document.getElementById('yearInput');
-    const goBtn = document.getElementById('goBtn');
-    const historyDiv = document.getElementById('history');
-    const bookmarkBtn = document.getElementById('bookmarkBtn');
-    const bookmarksDiv = document.getElementById('bookmarks');
+    const clicker = document.getElementById('clicker');
+    const scoreDiv = document.getElementById('score');
+    const autoClickBtn = document.getElementById('autoClick');
+    const doubleClickBtn = document.getElementById('doubleClick');
 
-    let currentYear = null;
-    let bookmarks = [];
-
-    function showHistory(year) {
-      currentYear = year;
-      const text = historyData[year] || "No data found for this year... yet. Maybe you’ve discovered a hidden timeline!";
-      historyDiv.textContent = year + ": " + text;
-      historyDiv.classList.add('show');
+    function updateScore() {
+      scoreDiv.textContent = "Score: " + score;
     }
 
-    goBtn.addEventListener('click', () => {
-      const year = parseInt(yearInput.value);
-      if (!isNaN(year)) {
-        showHistory(year);
+    clicker.addEventListener('click', () => {
+      score += clickValue;
+      updateScore();
+    });
+
+    autoClickBtn.addEventListener('click', () => {
+      if (score >= 50) {
+        score -= 50;
+        autoClickers++;
+        updateScore();
       }
     });
 
-    bookmarkBtn.addEventListener('click', () => {
-      if (currentYear && !bookmarks.includes(currentYear)) {
-        bookmarks.push(currentYear);
-        renderBookmarks();
+    doubleClickBtn.addEventListener('click', () => {
+      if (score >= 100) {
+        score -= 100;
+        clickValue *= 2;
+        updateScore();
       }
     });
 
-    function renderBookmarks() {
-      bookmarksDiv.innerHTML = "<strong>Bookmarks:</strong>";
-      bookmarks.forEach(y => {
-        const div = document.createElement('div');
-        div.className = 'bookmark';
-        div.textContent = y + " → " + (historyData[y] || "Unknown");
-        div.addEventListener('click', () => showHistory(y));
-        bookmarksDiv.appendChild(div);
-      });
-    }
+    // Auto‑click loop
+    setInterval(() => {
+      if (autoClickers > 0) {
+        score += autoClickers;
+        updateScore();
+      }
+    }, 1000);
   </script>
 </body>
 </html>
