@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Voyager Prototype</title>
+  <title>Voyager Evolved</title>
   <style>
     body { margin: 0; overflow: hidden; background: black; }
   </style>
@@ -12,64 +12,80 @@
   <script>
     // Scene + Camera
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(
-      60, window.innerWidth / window.innerHeight, 0.1, 2000
-    );
-    camera.position.z = 50;
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 2000);
+    camera.position.z = 80;
 
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({antialias:true});
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // Simple Voyager placeholder (a cube with antenna)
-    const bodyGeo = new THREE.BoxGeometry(5, 3, 3);
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x8888ff });
+    // Lighting
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const point = new THREE.PointLight(0xffffff, 1);
+    point.position.set(50,50,50);
+    scene.add(point);
+
+    // Voyager body
+    const bodyGeo = new THREE.BoxGeometry(6,4,4);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x6688ff });
     const body = new THREE.Mesh(bodyGeo, bodyMat);
     scene.add(body);
 
-    // Antenna dish
-    const dishGeo = new THREE.CylinderGeometry(0, 3, 2, 32, 1, true);
+    // High-gain antenna dish
+    const dishGeo = new THREE.CylinderGeometry(0, 12, 4, 32, 1, true);
     const dishMat = new THREE.MeshStandardMaterial({ color: 0xffffaa, side: THREE.DoubleSide });
     const dish = new THREE.Mesh(dishGeo, dishMat);
-    dish.rotation.x = Math.PI / 2;
-    dish.position.set(4, 0, 0);
+    dish.rotation.x = Math.PI/2;
+    dish.position.set(10,0,0);
     body.add(dish);
 
-    // Lighting
-    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambient);
-    const point = new THREE.PointLight(0xffffff, 1);
-    point.position.set(50, 50, 50);
-    scene.add(point);
+    // Boom arm (long thin rod)
+    const boomGeo = new THREE.CylinderGeometry(0.2,0.2,20,8);
+    const boomMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+    const boom = new THREE.Mesh(boomGeo, boomMat);
+    boom.rotation.z = Math.PI/2;
+    boom.position.set(-15,0,0);
+    body.add(boom);
 
-    // Starfield background
+    // Small instrument appendages
+    function addAntenna(x,y,z) {
+      const geo = new THREE.CylinderGeometry(0.1,0.1,6,6);
+      const mat = new THREE.MeshStandardMaterial({ color: 0xffaa00 });
+      const ant = new THREE.Mesh(geo, mat);
+      ant.position.set(x,y,z);
+      return ant;
+    }
+    body.add(addAntenna(0,3,0));
+    body.add(addAntenna(0,-3,0));
+    body.add(addAntenna(0,0,3));
+
+    // Starfield
     const starGeo = new THREE.BufferGeometry();
     const starCount = 2000;
     const positions = [];
-    for (let i = 0; i < starCount; i++) {
+    for(let i=0;i<starCount;i++){
       positions.push(
-        (Math.random() - 0.5) * 2000,
-        (Math.random() - 0.5) * 2000,
-        (Math.random() - 0.5) * 2000
+        (Math.random()-0.5)*2000,
+        (Math.random()-0.5)*2000,
+        (Math.random()-0.5)*2000
       );
     }
-    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 1 });
+    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions,3));
+    const starMat = new THREE.PointsMaterial({ color:0xffffff, size:1 });
     const stars = new THREE.Points(starGeo, starMat);
     scene.add(stars);
 
     // Animate
-    function animate() {
+    function animate(){
       requestAnimationFrame(animate);
-      body.rotation.y += 0.005; // slow spin
-      renderer.render(scene, camera);
+      body.rotation.y += 0.003;
+      body.rotation.x += 0.001;
+      renderer.render(scene,camera);
     }
     animate();
 
-    // Resize
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
+    window.addEventListener('resize',()=>{
+      camera.aspect = window.innerWidth/window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
