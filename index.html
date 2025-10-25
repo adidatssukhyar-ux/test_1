@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Pixel Clicker</title>
+  <title>Cosmic Clicker</title>
   <style>
     body {
       margin: 0;
       font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #1e1e2f, #2c5364);
+      background: radial-gradient(circle at center, #0f0f1a, #000);
       color: #f5f5f5;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
       height: 100vh;
-      overflow: hidden;
+      padding-top: 40px;
     }
     h1 {
       margin-bottom: 20px;
@@ -22,17 +22,17 @@
       letter-spacing: 2px;
     }
     #clicker {
-      width: 150px;
-      height: 150px;
+      width: 160px;
+      height: 160px;
       border-radius: 50%;
-      background: radial-gradient(circle, #1e90ff, #4682b4);
+      background: radial-gradient(circle, #ff4444, #aa0000);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.5em;
+      font-size: 1.2em;
       font-weight: bold;
       cursor: pointer;
-      box-shadow: 0 0 20px rgba(30,144,255,0.7);
+      box-shadow: 0 0 25px rgba(255,0,0,0.7);
       transition: transform 0.1s ease;
       user-select: none;
     }
@@ -48,6 +48,7 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+      width: 250px;
     }
     .upgrade {
       background: rgba(255,255,255,0.1);
@@ -57,6 +58,7 @@
       color: #fff;
       cursor: pointer;
       transition: background 0.3s;
+      text-align: left;
     }
     .upgrade:hover {
       background: rgba(255,255,255,0.2);
@@ -64,56 +66,67 @@
   </style>
 </head>
 <body>
-  <h1>⚡ Pixel Clicker ⚡</h1>
-  <div id="clicker">Click!</div>
-  <div id="score">Score: 0</div>
+  <h1>🌌 Cosmic Clicker 🌌</h1>
+  <div id="clicker">Punch!</div>
+  <div id="score">Energy: 0</div>
   <div id="upgrades">
-    <button class="upgrade" id="autoClick">Buy Auto‑Clicker (Cost: 50)</button>
-    <button class="upgrade" id="doubleClick">Buy Double Click (Cost: 100)</button>
+    <button class="upgrade" id="superPunch">Unlock Super Punch (Cost: 50)</button>
+    <button class="upgrade" id="supernova">Unlock Supernova (Cost: 200)</button>
+    <button class="upgrade" id="blackhole">Unlock Black Hole (Cost: 1000)</button>
   </div>
 
   <script>
-    let score = 0;
+    let energy = 0;
     let clickValue = 1;
-    let autoClickers = 0;
+    let currentAttack = "Punch";
 
     const clicker = document.getElementById('clicker');
     const scoreDiv = document.getElementById('score');
-    const autoClickBtn = document.getElementById('autoClick');
-    const doubleClickBtn = document.getElementById('doubleClick');
+    const superPunchBtn = document.getElementById('superPunch');
+    const supernovaBtn = document.getElementById('supernova');
+    const blackholeBtn = document.getElementById('blackhole');
 
     function updateScore() {
-      scoreDiv.textContent = "Score: " + score;
+      scoreDiv.textContent = "Energy: " + energy;
+      clicker.textContent = currentAttack + "!";
     }
 
     clicker.addEventListener('click', () => {
-      score += clickValue;
+      energy += clickValue;
       updateScore();
     });
 
-    autoClickBtn.addEventListener('click', () => {
-      if (score >= 50) {
-        score -= 50;
-        autoClickers++;
+    superPunchBtn.addEventListener('click', () => {
+      if (energy >= 50) {
+        energy -= 50;
+        clickValue = 5;
+        currentAttack = "Super Punch";
+        superPunchBtn.disabled = true;
         updateScore();
       }
     });
 
-    doubleClickBtn.addEventListener('click', () => {
-      if (score >= 100) {
-        score -= 100;
-        clickValue *= 2;
+    supernovaBtn.addEventListener('click', () => {
+      if (energy >= 200) {
+        energy -= 200;
+        clickValue = 20;
+        currentAttack = "Supernova";
+        supernovaBtn.disabled = true;
         updateScore();
       }
     });
 
-    // Auto‑click loop
-    setInterval(() => {
-      if (autoClickers > 0) {
-        score += autoClickers;
+    blackholeBtn.addEventListener('click', () => {
+      if (energy >= 1000) {
+        energy -= 1000;
+        clickValue = 100;
+        currentAttack = "Black Hole";
+        blackholeBtn.disabled = true;
         updateScore();
       }
-    }, 1000);
+    });
+
+    updateScore();
   </script>
 </body>
 </html>
