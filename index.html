@@ -2,65 +2,42 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Voyager Pilot Mode</title>
+  <title>Hello Three.js</title>
   <style>
     body { margin: 0; overflow: hidden; background: black; }
   </style>
 </head>
 <body>
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
   <script>
     // Scene + Camera
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(
       60, window.innerWidth / window.innerHeight, 0.1, 2000
     );
-    camera.position.set(0, 0, 100);
+    camera.position.set(0, 0, 50);
+    camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x111133); // dark blue background
     document.body.appendChild(renderer.domElement);
 
-    // Voyager body
-    const bodyGeo = new THREE.BoxGeometry(8, 6, 6);
-    const bodyMat = new THREE.MeshBasicMaterial({ color: 0x6688ff });
-    const body = new THREE.Mesh(bodyGeo, bodyMat);
-    scene.add(body);
-
-    // Dish
-    const dishGeo = new THREE.CylinderGeometry(0, 20, 6, 32, 1, true);
-    const dishMat = new THREE.MeshBasicMaterial({ color: 0xffffcc, side: THREE.DoubleSide });
-    const dish = new THREE.Mesh(dishGeo, dishMat);
-    dish.rotation.x = Math.PI / 2;
-    dish.position.set(18, 0, 0);
-    body.add(dish);
-
-    // Boom
-    const boomGeo = new THREE.CylinderGeometry(0.2, 0.2, 40, 8);
-    const boomMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const boom = new THREE.Mesh(boomGeo, boomMat);
-    boom.rotation.z = Math.PI / 2;
-    boom.position.set(-30, 0, 0);
-    body.add(boom);
-
-    // Golden record
-    const recordGeo = new THREE.CircleGeometry(2, 32);
-    const recordMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
-    const record = new THREE.Mesh(recordGeo, recordMat);
-    record.rotation.y = Math.PI / 2;
-    record.position.set(0, 0, 3.5);
-    body.add(record);
+    // Test cube
+    const cubeGeo = new THREE.BoxGeometry(10, 10, 10);
+    const cubeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const cube = new THREE.Mesh(cubeGeo, cubeMat);
+    scene.add(cube);
 
     // Starfield
     const starGeo = new THREE.BufferGeometry();
-    const starCount = 2000;
+    const starCount = 1000;
     const positions = [];
     for (let i = 0; i < starCount; i++) {
       positions.push(
-        (Math.random() - 0.5) * 2000,
-        (Math.random() - 0.5) * 2000,
-        (Math.random() - 0.5) * 2000
+        (Math.random() - 0.5) * 1000,
+        (Math.random() - 0.5) * 1000,
+        (Math.random() - 0.5) * 1000
       );
     }
     starGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
@@ -68,41 +45,11 @@
     const stars = new THREE.Points(starGeo, starMat);
     scene.add(stars);
 
-    // OrbitControls
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.enableZoom = true;
-    controls.target.set(0, 0, 0);
-    controls.update();
-    controls.mouseButtons = {
-      LEFT: THREE.MOUSE.PAN,
-      MIDDLE: THREE.MOUSE.DOLLY,
-      RIGHT: THREE.MOUSE.ROTATE
-    };
-
-    // Keyboard drift controls
-    const keys = {};
-    window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
-    window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
-
-    function updateKeyboardControls() {
-      const speed = 1;
-      if (keys['w']) camera.position.z -= speed;
-      if (keys['s']) camera.position.z += speed;
-      if (keys['a']) camera.position.x -= speed;
-      if (keys['d']) camera.position.x += speed;
-      if (keys['q']) camera.position.y -= speed;
-      if (keys['e']) camera.position.y += speed;
-    }
-
     // Animate
     function animate() {
       requestAnimationFrame(animate);
-      body.rotation.y += 0.002;
-      body.rotation.x += 0.001;
-      updateKeyboardControls();
-      controls.update();
+      cube.rotation.x += 0.01;
+      cube.rotation.y += 0.01;
       renderer.render(scene, camera);
     }
     animate();
