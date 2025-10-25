@@ -2,131 +2,116 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cosmic Clicker</title>
+  <title>Punch Evolution</title>
   <style>
     body {
       margin: 0;
-      font-family: 'Inter', sans-serif;
-      background: radial-gradient(circle at center, #0f0f1a, #000);
-      color: #f5f5f5;
+      font-family: sans-serif;
+      background: #111;
+      color: #fff;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
+      justify-content: center;
       height: 100vh;
-      padding-top: 40px;
     }
-    h1 {
+    #energyBar {
+      width: 300px;
+      height: 30px;
+      background: #333;
+      border-radius: 8px;
+      overflow: hidden;
       margin-bottom: 20px;
-      font-size: 2em;
-      letter-spacing: 2px;
     }
-    #clicker {
-      width: 160px;
-      height: 160px;
-      border-radius: 50%;
-      background: radial-gradient(circle, #ff4444, #aa0000);
+    #energyFill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #1e90ff, #00ff99);
+      transition: width 0.2s;
+    }
+    #wall {
+      width: 200px;
+      height: 200px;
+      background: gray;
+      border: 5px solid #555;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.2em;
       font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 0 25px rgba(255,0,0,0.7);
-      transition: transform 0.1s ease;
-      user-select: none;
-    }
-    #clicker:active {
-      transform: scale(0.9);
-    }
-    #score {
       margin-top: 20px;
-      font-size: 1.5em;
+      transition: transform 0.1s;
     }
-    #upgrades {
-      margin-top: 30px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      width: 250px;
-    }
-    .upgrade {
-      background: rgba(255,255,255,0.1);
-      border: none;
-      border-radius: 6px;
-      padding: 10px;
-      color: #fff;
-      cursor: pointer;
-      transition: background 0.3s;
-      text-align: left;
-    }
-    .upgrade:hover {
-      background: rgba(255,255,255,0.2);
+    .shake { animation: shake 0.3s; }
+    @keyframes shake {
+      0% { transform: translate(2px, 2px); }
+      25% { transform: translate(-2px, -2px); }
+      50% { transform: translate(2px, -2px); }
+      75% { transform: translate(-2px, 2px); }
+      100% { transform: translate(0,0); }
     }
   </style>
 </head>
 <body>
-  <h1>🌌 Cosmic Clicker 🌌</h1>
-  <div id="clicker">Punch!</div>
-  <div id="score">Energy: 0</div>
-  <div id="upgrades">
-    <button class="upgrade" id="superPunch">Unlock Super Punch (Cost: 50)</button>
-    <button class="upgrade" id="supernova">Unlock Supernova (Cost: 200)</button>
-    <button class="upgrade" id="blackhole">Unlock Black Hole (Cost: 1000)</button>
-  </div>
+  <h1>Punch Evolution</h1>
+  <div id="energyBar"><div id="energyFill"></div></div>
+  <div id="level">Level: Average</div>
+  <div id="wall">WALL</div>
 
   <script>
     let energy = 0;
-    let clickValue = 1;
-    let currentAttack = "Punch";
+    let maxEnergy = 20;
+    let level = 0;
+    const levels = ["Average","Boxer","Superhuman","Superhero","One Punch Man"];
+    const wall = document.getElementById('wall');
+    let wallHP = 50;
 
-    const clicker = document.getElementById('clicker');
-    const scoreDiv = document.getElementById('score');
-    const superPunchBtn = document.getElementById('superPunch');
-    const supernovaBtn = document.getElementById('supernova');
-    const blackholeBtn = document.getElementById('blackhole');
+    const energyFill = document.getElementById('energyFill');
+    const levelDiv = document.getElementById('level');
 
-    function updateScore() {
-      scoreDiv.textContent = "Energy: " + energy;
-      clicker.textContent = currentAttack + "!";
+    function punch() {
+      energy += 2;
+      if (energy >= maxEnergy && level < levels.length-1) {
+        energy = 0;
+        level++;
+        maxEnergy += 20; // harder to reach next level
+        levelDiv.textContent = "Level: " + levels[level];
+      }
+      updateEnergyBar();
+      damageWall();
     }
 
-    clicker.addEventListener('click', () => {
-      energy += clickValue;
-      updateScore();
-    });
+    function updateEnergyBar() {
+      energyFill.style.width = (energy/maxEnergy*100) + "%";
+    }
 
-    superPunchBtn.addEventListener('click', () => {
-      if (energy >= 50) {
-        energy -= 50;
-        clickValue = 5;
-        currentAttack = "Super Punch";
-        superPunchBtn.disabled = true;
-        updateScore();
+    function damageWall() {
+      let dmg = (level+1)*2; // stronger at higher levels
+      wallHP -= dmg;
+      wall.classList.add('shake');
+      setTimeout(()=>wall.classList.remove('shake'),300);
+
+      if (wallHP <= 0) {
+        wallHP = 0;
+        triggerWallBreak();
       }
-    });
+      wall.textContent = "HP: " + wallHP;
+    }
 
-    supernovaBtn.addEventListener('click', () => {
-      if (energy >= 200) {
-        energy -= 200;
-        clickValue = 20;
-        currentAttack = "Supernova";
-        supernovaBtn.disabled = true;
-        updateScore();
+    function triggerWallBreak() {
+      switch(level) {
+        case 0: wall.style.background = "darkgray"; break;
+        case 1: wall.style.background = "crimson"; break;
+        case 2: wall.style.background = "orange"; break;
+        case 3: wall.style.background = "yellow"; break;
+        case 4: wall.style.background = "white"; document.body.style.background="white"; setTimeout(()=>document.body.style.background="#111",200); break;
       }
-    });
+      wall.textContent = "DESTROYED!";
+    }
 
-    blackholeBtn.addEventListener('click', () => {
-      if (energy >= 1000) {
-        energy -= 1000;
-        clickValue = 100;
-        currentAttack = "Black Hole";
-        blackholeBtn.disabled = true;
-        updateScore();
-      }
-    });
+    document.addEventListener('click', punch);
+    document.addEventListener('keydown', e => { if (e.key==="e" || e.key==="E") punch(); });
 
-    updateScore();
+    wall.textContent = "HP: " + wallHP;
   </script>
 </body>
 </html>
