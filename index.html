@@ -3,361 +3,315 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Pick Your Power — Prototype</title>
+<title>Pick Your Power — Pixel Menu</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#0b1020; --panel:rgba(0,0,0,0.45); --accent:#ffb86b; --muted:#b6c7d9;
-  }
-  html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:var(--bg);}
+  :root{--bg:#0b1020;--muted:#b6c7d9;--accent:#ffd599;}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:var(--bg);-webkit-font-smoothing:antialiased;}
   #app{position:relative;height:100vh;overflow:hidden;display:flex;align-items:center;justify-content:center;}
-  canvas{display:block; width:100%; height:100%; image-rendering:optimizeSpeed;}
-  /* menu overlay */
+  canvas{display:block; width:100%; height:100%; image-rendering:pixelated;}
+  /* center text */
   .menu{
-    position:absolute; left:50%; top:12%; transform:translateX(-50%); text-align:center;
-    color:#fff; text-shadow:0 6px 18px rgba(0,0,0,0.7);
+    position:absolute; left:50%; top:44%; transform:translate(-50%,-50%); text-align:center;
+    color:var(--accent); text-shadow:0 6px 22px rgba(0,0,0,0.65); pointer-events:none;
   }
   .title{
-    font-family:'Press Start 2P', monospace;
-    font-size:28px; letter-spacing:2px; color:#ffd599;
-    -webkit-font-smoothing: none; margin:0 0 10px 0;
+    font-family:'Press Start 2P', monospace; font-size:28px; letter-spacing:2px; margin:0;
+    color:var(--accent);
   }
-  .subtitle{font-size:14px;color:var(--muted); margin:6px 0 18px 0;}
-  .cta{
-    display:inline-flex; gap:10px; align-items:center;
+  .prompt{
+    margin-top:18px; font-family:'Press Start 2P', monospace; font-size:12px; color:var(--muted);
+    letter-spacing:1px;
   }
-  .btn{
-    background:linear-gradient(180deg,#2d2f42,#11121d);
-    border:2px solid rgba(255,255,255,0.06);
-    color:#fff;padding:12px 18px;border-radius:8px;cursor:pointer;font-weight:700;font-family:Inter;
-    box-shadow:0 8px 30px rgba(2,6,23,0.6);
-  }
-  .btn:active{transform:translateY(1px);}
-  .hint{font-family:'Press Start 2P',monospace;font-size:10px;margin-top:12px;color:#98a8bf;letter-spacing:1px;}
-  /* little pixel cursor for vibe */
-  .pixel-cursor{position:absolute; width:14px; height:14px; background:linear-gradient(180deg,#fff,#d7d7d7); border:2px solid #111; transform:translate(-50%,-50%); mix-blend-mode:normal; pointer-events:none; image-rendering:pixelated; border-radius:2px;}
-  /* responsive */
-  @media (max-width:720px){
-    .title{font-size:18px}
-    .btn{padding:10px 12px;font-size:13px}
-  }
+  /* hide menu after continue */
+  .menu.hidden{opacity:0; transform:translate(-50%,-44%) scale(.98); transition:opacity 320ms, transform 320ms;}
+  @media (max-width:720px){ .title{font-size:18px} .prompt{font-size:10px} }
 </style>
 </head>
 <body>
-  <div id="app">
+  <div id="app" role="main" aria-label="Pick Your Power intro">
     <canvas id="bg"></canvas>
 
-    <div class="menu" role="dialog" aria-label="Pick Your Power menu">
-      <h1 class="title">PICK YOUR POWER!</h1>
-      <div class="subtitle">Choose a character, then pick your ability</div>
-      <div class="cta">
-        <button id="startBtn" class="btn">Start</button>
-        <button id="customBtn" class="btn">Customize</button>
-      </div>
-      <div class="hint">MOVE YOUR MOUSE • BACKGROUND FOLLOWS</div>
+    <div class="menu" id="menu">
+      <div class="title">PICK YOUR POWER!</div>
+      <div class="prompt">PRESS ANYWHERE TO CONTINUE</div>
     </div>
-
-    <div id="cursor" class="pixel-cursor" aria-hidden="true"></div>
   </div>
 
 <script>
-/*
- Single-file interactive background:
- - Canvas draws layered parallax mountain + sakura trees.
- - Background follows mouse (smooth lerp) and reacts to touch.
- - Title uses pixel font (Press Start 2P) for the retro pixel look.
- - No external images required; everything drawn procedurally.
+/* Single-file pixelated parallax background: Mount Fuji + sakura.
+   - Low-res offscreen canvas is drawn and scaled up to create pixel-art look.
+   - Background follows mouse/touch horizontally and vertically (smooth lerp).
+   - Menu shows only title + "press anywhere to continue".
+   - Clicking/tapping hides menu (no cursor element).
 */
 
+/* Canvas and rendering setup */
 const canvas = document.getElementById('bg');
-const ctx = canvas.getContext('2d', { alpha: false });
-const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const ctx = canvas.getContext('2d', {alpha:false});
 
-function fitCanvas(){
+/* We'll draw to a small offscreen pixel canvas and upscale it to the screen */
+let lowW = 320; // low-res width for pixelated look
+let lowH = 180; // low-res height
+let off = document.createElement('canvas');
+let offCtx = off.getContext('2d', {alpha:false});
+
+function fit(){
   const w = window.innerWidth;
   const h = window.innerHeight;
   canvas.style.width = w + 'px';
   canvas.style.height = h + 'px';
-  canvas.width = Math.round(w * DPR);
-  canvas.height = Math.round(h * DPR);
-  ctx.setTransform(DPR,0,0,DPR,0,0);
+  canvas.width = w;
+  canvas.height = h;
+  // maintain low-res aspect based on screen aspect
+  const ratio = w/h;
+  // choose lowW/lowH keeping roughly same ratio, clamp min/max
+  lowW = Math.max(240, Math.min(480, Math.round(320 * Math.min(1.6, ratio))));
+  lowH = Math.round(lowW * 9 / 16);
+  off.width = lowW;
+  off.height = lowH;
+  // ensure crisp upscale
+  ctx.imageSmoothingEnabled = false;
+  offCtx.imageSmoothingEnabled = false;
 }
-fitCanvas();
-window.addEventListener('resize', fitCanvas);
+fit();
+window.addEventListener('resize', fit);
 
-/* Parallax layers configuration
-  - We create 5 layers (very back sky, mountains mid, sakura far, sakura near, foreground ground)
-  - Each layer has its own horizontal offset that slides with mouse position.
-*/
-const layers = [
-  { name: 'sky',    depth: 0.02,  draw: drawSky },
-  { name: 'mount',  depth: 0.07,  draw: drawMountains },
-  { name: 'sakuraFar', depth: 0.14, draw: drawSakuraFar },
-  { name: 'sakuraNear', depth: 0.28, draw: drawSakuraNear },
-  { name: 'ground', depth: 0.45,  draw: drawGroundLine }
-];
+/* State for parallax following pointer */
+const state = {tx:0, ty:0, ox:0, oy:0, time:0};
+let pointer = {x: window.innerWidth/2, y: window.innerHeight/2, active:false};
 
-let state = {
-  targetX: 0, targetY: 0,
-  offsetX: 0, offsetY: 0,
-  time: 0
-};
-
-/* mouse / touch handling */
-let pointer = { x: window.innerWidth/2, y: window.innerHeight/2, active:false };
-window.addEventListener('mousemove', (e)=>{
-  pointer.x = e.clientX;
-  pointer.y = e.clientY;
-  pointer.active = true;
-  moveCursor(e.clientX, e.clientY);
+/* pointer handlers */
+window.addEventListener('mousemove', e => {
+  pointer.x = e.clientX; pointer.y = e.clientY; pointer.active = true;
 });
-window.addEventListener('touchmove', (e)=>{
-  const t = e.touches[0];
-  if(t){ pointer.x = t.clientX; pointer.y = t.clientY; pointer.active = true; moveCursor(t.clientX, t.clientY); }
+window.addEventListener('touchmove', e => {
+  const t = e.touches[0]; if(!t) return;
+  pointer.x = t.clientX; pointer.y = t.clientY; pointer.active = true;
 }, {passive:true});
-window.addEventListener('touchstart', ()=> pointer.active = true);
-window.addEventListener('touchend', ()=> pointer.active = false);
+window.addEventListener('touchstart', e => { const t = e.touches[0]; if(t){ pointer.x = t.clientX; pointer.y = t.clientY; pointer.active = true; } }, {passive:true});
 
-/* tiny custom pixel cursor */
-const cursorEl = document.getElementById('cursor');
-function moveCursor(x,y){
-  cursorEl.style.left = x + 'px';
-  cursorEl.style.top = y + 'px';
-}
+/* simple easing */
+function lerp(a,b,t){ return a + (b-a) * t; }
 
-/* animate loop */
-let last = performance.now();
-function loop(now){
-  const dt = Math.min( (now - last) / 1000, 0.033);
-  last = now;
-  state.time += dt;
+/* draw functions use low-res coordinates (offCtx) */
+function drawScene(offCtx, w, h, st) {
+  // background gradient (morning / sakura palette)
+  const g = offCtx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0, '#fff3e8');
+  g.addColorStop(0.2, '#ffdfe8');
+  g.addColorStop(0.5, '#ffd6f0');
+  g.addColorStop(1, '#a0c2f0');
+  offCtx.fillStyle = g; offCtx.fillRect(0,0,w,h);
 
-  // normalized pointer position -1..1
-  const nx = (pointer.x / window.innerWidth - 0.5) * 2;
-  const ny = (pointer.y / window.innerHeight - 0.5) * 2;
-  // target offsets scale with pointer
-  state.targetX = nx;
-  state.targetY = ny * -0.6;
-
-  // smooth lerp
-  state.offsetX += (state.targetX - state.offsetX) * Math.min(1, 6 * dt);
-  state.offsetY += (state.targetY - state.offsetY) * Math.min(1, 6 * dt);
-
-  // clear background
-  ctx.fillStyle = '#071028';
-  ctx.fillRect(0,0,canvas.width / DPR, canvas.height / DPR);
-
-  // draw layers back->front
-  for(const L of layers){
-    ctx.save();
-    // compute layer-specific translation using offset and depth
-    const tx = state.offsetX * (canvas.width / DPR) * L.depth * 0.35;
-    const ty = state.offsetY * (canvas.height / DPR) * L.depth * 0.18;
-    ctx.translate(tx, ty);
-    L.draw(ctx, canvas.width / DPR, canvas.height / DPR, state);
-    ctx.restore();
-  }
-
-  requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
-
-/* ---------------- layer painters ---------------- */
-
-function drawSky(ctx,w,h,st){
-  // gradient sky
-  const g = ctx.createLinearGradient(0,0,0,h);
-  g.addColorStop(0, '#ffeedd');
-  g.addColorStop(0.12, '#ffdfe9');
-  g.addColorStop(0.36, '#ffd9ef');
-  g.addColorStop(1, '#9fb7da');
-  ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
-
-  // subtle drifting clouds (soft shapes)
-  ctx.globalAlpha = 0.25;
+  // subtle clouds / mist
+  offCtx.globalAlpha = 0.15;
   for(let i=0;i<3;i++){
-    const cx = (Math.sin(st.time*0.06 + i*2.1)*0.5 + 0.5) * w;
-    const cy = h*0.12 + i*14;
-    drawSoftCloud(ctx, cx + Math.cos(i*1.3+st.time*0.4)*30, cy, (i+1)*120, 40 + i*6);
+    drawSoftBlob(offCtx, (st*30 + i*60) % w, h*0.12 + i*6, w*0.5 - i*40, h*0.14);
   }
-  ctx.globalAlpha = 1;
+  offCtx.globalAlpha = 1;
+
+  // mountains layers with parallax shift based on st.offsetX/offsetY factors
+  // farest pale mountain
+  drawPixelMountain(offCtx, w, h, h*0.44, 0.12, '#a6c8e6', st.offsetX * 0.06, st.offsetY * 0.02);
+  // mid mountain
+  drawPixelMountain(offCtx, w, h, h*0.52, 0.24, '#7fa6d7', st.offsetX * 0.12, st.offsetY * 0.04);
+  // Mount Fuji main - central, iconic cone
+  drawFuji(offCtx, w, h, h*0.62, '#2f66a5', '#ffffff', st.offsetX * 0.18, st.offsetY * 0.06);
+
+  // sakura tree silhouettes far
+  drawSakuraRow(offCtx, w, h, h*0.72, 0.35, st.offsetX * 0.28, st.offsetY * 0.06, true);
+  // sakura trees near with blossoms
+  drawSakuraRow(offCtx, w, h, h*0.80, 0.65, st.offsetX * 0.5, st.offsetY * 0.12, false);
+
+  // ground foreground strip
+  offCtx.fillStyle = '#0b1220';
+  offCtx.fillRect(0, Math.floor(h*0.86), w, h - Math.floor(h*0.86));
 }
 
-function drawSoftCloud(ctx,x,y,wid,height){
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  ctx.ellipse(x, y, wid*0.36, height*0.7, 0, 0, Math.PI*2);
-  ctx.ellipse(x - wid*0.25, y+6, wid*0.25, height*0.6, 0, 0, Math.PI*2);
-  ctx.ellipse(x + wid*0.28, y+4, wid*0.22, height*0.55, 0, 0, Math.PI*2);
-  ctx.fill();
+/* helpers for drawing soft shapes (but still in low-res to look pixel) */
+function drawSoftBlob(c, x, y, w, h){
+  c.beginPath();
+  c.ellipse(x, y, w*0.6, h*0.6, 0, 0, Math.PI*2);
+  c.fillStyle = '#ffffff';
+  c.fill();
 }
 
-function drawMountains(ctx,w,h,st){
-  // layered mountains silhouettes with soft color shifts
-  const baseY = h * 0.48;
-  // far mountains (pale)
-  drawMountain(ctx, w, h, baseY + 10, 0.18, '#6b9ecf', 0.8);
-  // mid mountains
-  drawMountain(ctx, w, h, baseY + 48, 0.34, '#487aa5', 0.98);
-  // near mountain with warm tone
-  drawMountain(ctx, w, h, baseY + 88, 0.56, '#2f5f87', 1.0);
-}
-
-function drawMountain(ctx, w, h, baseY, roughness, color, alpha){
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(-100, h);
-  const peaks = Math.floor(6 + roughness*12);
+/* pixel mountain silhouette approximated with triangles */
+function drawPixelMountain(c, w, h, baseY, scale, color, ox, oy){
+  c.save();
+  c.translate(ox, oy);
+  c.fillStyle = color;
+  const peaks = 6;
+  c.beginPath();
+  c.moveTo(-40, h);
   for(let i=0;i<=peaks;i++){
-    const px = (i/peaks) * (w + 200) - 100;
-    const sway = Math.sin(i*1.3 + (baseY*0.01)) * 18 * roughness;
-    const py = baseY - Math.abs(Math.sin(i*0.7 + (performance.now()*0.0001)*(1+roughness))) * (120 * roughness) + sway;
-    ctx.lineTo(px, py);
+    const px = Math.round((i/peaks) * (w + 80) - 40);
+    const py = Math.round(baseY - Math.abs(Math.sin(i*0.9 + baseY*0.01)) * (120 * scale));
+    c.lineTo(px, py);
   }
-  ctx.lineTo(w + 100, h);
-  ctx.closePath();
-  // subtle linear gradient on mountain
-  const g = ctx.createLinearGradient(0, baseY-200, 0, baseY+200);
-  g.addColorStop(0, shadeColor(color, 14));
-  g.addColorStop(1, shadeColor(color, -10));
-  ctx.fillStyle = g;
-  ctx.fill();
-  ctx.globalAlpha = 1;
+  c.lineTo(w+40, h);
+  c.closePath();
+  c.fill();
+  c.restore();
 }
 
-/* Sakura (far) decorative thin trees — drawn sparsely */
-function drawSakuraFar(ctx,w,h,st){
-  const yBase = h * 0.68;
-  ctx.globalAlpha = 0.9;
-  for(let i=0;i<8;i++){
-    const px = (i/7) * w;
-    const jitter = Math.sin(st.time*0.4 + i*1.7) * 18;
-    drawSakuraTree(ctx, px + jitter, yBase + (i%2 ? 6 : -6), 1.0, 0.85, true);
+/* draw iconic Mount Fuji as a symmetrical cone with snowy cap */
+function drawFuji(c, w, h, baseY, baseColor, capColor, ox, oy){
+  c.save();
+  c.translate(ox, oy);
+  const centerX = Math.round(w/2);
+  const peakY = Math.round(baseY - 220);
+  const leftX = Math.round(centerX - 260);
+  const rightX = Math.round(centerX + 260);
+
+  // main cone
+  c.beginPath();
+  c.moveTo(centerX, peakY);
+  c.lineTo(rightX, baseY);
+  c.lineTo(leftX, baseY);
+  c.closePath();
+  const g = c.createLinearGradient(centerX, peakY, centerX, baseY);
+  g.addColorStop(0, shadeRGB(baseColor, 18));
+  g.addColorStop(1, shadeRGB(baseColor, -8));
+  c.fillStyle = g;
+  c.fill();
+
+  // snowy cap as jagged polygon near the top
+  c.fillStyle = capColor;
+  c.beginPath();
+  const capW = 220;
+  const capBaseY = peakY + 70;
+  c.moveTo(centerX - capW*0.5, capBaseY);
+  for(let i=0;i<=10;i++){
+    const t = i/10;
+    const x = centerX - capW*0.5 + t*capW;
+    const y = capBaseY - Math.sin(t*Math.PI*2) * 18 * (Math.random()*0.6+0.7);
+    c.lineTo(x, y);
   }
-  ctx.globalAlpha = 1;
+  c.lineTo(centerX + capW*0.5, capBaseY);
+  c.lineTo(centerX, peakY + 12);
+  c.closePath();
+  c.fill();
+
+  // small rim under cap for depth
+  c.strokeStyle = shadeRGB('#ffffff', -12);
+  c.lineWidth = 2;
+  c.stroke();
+
+  c.restore();
 }
 
-/* Sakura (near) bigger trees with blossoms */
-function drawSakuraNear(ctx,w,h,st){
-  const yBase = h * 0.78;
-  for(let i=0;i<6;i++){
-    const px = w*0.12 + (i/5) * (w*0.76);
-    const sway = Math.sin(st.time*0.6 + i*1.1) * 28 * ( (i%2)?0.8:1.0 );
-    drawSakuraTree(ctx, px + sway, yBase + (i%2 ? 2 : -2), 1.6, 1.0, false);
+/* sakura row: repeated stylized tree silhouettes and blossoms */
+function drawSakuraRow(c, w, h, baseY, scale, ox, oy, far){
+  c.save();
+  c.translate(ox, oy);
+  const count = far ? 8 : 5;
+  for(let i=0;i<count;i++){
+    const t = i / (count-1);
+    const px = Math.round(t * w);
+    const jitter = Math.sin((t + state.time*0.2) * 6.0) * 12 * (far ? 0.4 : 1.0);
+    drawSakura(c, px + jitter, baseY + (far ? -6 : 0), scale * (far ? 0.9 : 1.3), far);
   }
+  c.restore();
 }
 
-function drawSakuraTree(ctx,x,y,scale,alpha,far){
-  ctx.save();
-  ctx.translate(x,y);
-  ctx.scale(scale, scale);
-  // trunk
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = far ? '#2c1f14' : '#3a2418';
-  ctx.beginPath();
-  ctx.moveTo(-6,0); ctx.quadraticCurveTo(-12,-24, -6,-64); ctx.quadraticCurveTo(-2,-78, 6,-86);
-  ctx.quadraticCurveTo(14,-76, 12,-60); ctx.quadraticCurveTo(20,-40, 10,0);
-  ctx.fill();
-  // branches (simple arcs)
-  ctx.strokeStyle = far ? '#2c1f14' : '#3a2418'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(2,-50); ctx.quadraticCurveTo(60,-84, 96,-64); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(-4,-60); ctx.quadraticCurveTo(-60,-80, -96,-56); ctx.stroke();
-  // blossoms
-  const petals = far ? 14 : 34;
-  for(let i=0;i<petals;i++){
+function drawSakura(c, x, y, scale, far){
+  c.save();
+  c.translate(x, y);
+  c.scale(scale, scale);
+  // trunk (simple dark stroke)
+  c.fillStyle = far ? '#2b1912' : '#3b2418';
+  c.beginPath();
+  c.moveTo(-6, 0); c.quadraticCurveTo(-8, -18, -6, -40); c.quadraticCurveTo(-3, -48, 6, -54);
+  c.quadraticCurveTo(14, -46, 12, -30); c.quadraticCurveTo(18, -12, 10, 0);
+  c.fill();
+
+  // canopy as clustered blobs, tinted pink
+  const blossoms = far ? 8 : 18;
+  for(let i=0;i<blossoms;i++){
     const a = Math.random()*Math.PI*2;
-    const r = Math.random()*48 * (far ? 0.6 : 1.0);
+    const r = Math.random()*36 * (far ? 0.6 : 1.0);
     const bx = Math.cos(a)*r;
-    const by = Math.sin(a)*r - 60;
-    drawPetal(ctx, bx + (Math.random()*8-4), by + (Math.random()*8-4), far ? 3 : 5, far);
+    const by = Math.sin(a)*r - 48;
+    drawBlossom(c, bx + (Math.random()*6-3), by + (Math.random()*6-3), far);
   }
-  ctx.restore();
-  ctx.globalAlpha = 1;
+  c.restore();
 }
 
-function drawPetal(ctx,x,y,size,far){
-  ctx.save();
-  ctx.translate(x,y);
-  ctx.rotate((x+y)*0.01);
-  ctx.fillStyle = far ? '#ffd7e8' : '#ffc6e1';
-  ctx.beginPath();
-  ctx.ellipse(0,0, size*0.8, size, 0, 0, Math.PI*2);
-  ctx.fill();
-  ctx.restore();
+function drawBlossom(c, x, y, far){
+  c.save();
+  c.translate(x, y);
+  const size = far ? 2.5 : 4.2;
+  c.fillStyle = far ? '#ffdbe9' : '#ffc6e1';
+  c.beginPath();
+  c.ellipse(0, 0, size*0.9, size, 0, 0, Math.PI*2);
+  c.fill();
+  c.restore();
 }
 
-/* foreground ground details */
-function drawGroundLine(ctx,w,h){
-  // stylized foreground with light fog
-  const y = h * 0.78;
-  ctx.fillStyle = 'rgba(6,12,20,0.95)';
-  ctx.fillRect(0,y, w, h - y);
-  // faint rim light
-  ctx.strokeStyle = 'rgba(255,220,200,0.03)'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(40, y + 6); ctx.lineTo(w-40, y + 6); ctx.stroke();
-}
-
-/* ---------------- helper utilities ---------------- */
-function shadeColor(hex, percent) {
-  // simple hex shading: percent positive lighter, negative darker
+/* shade helper */
+function shadeRGB(hex, percent){
+  // percent positive lighten, negative darken
   const f = hex.replace('#','');
   const R = parseInt(f.substring(0,2),16);
   const G = parseInt(f.substring(2,4),16);
   const B = parseInt(f.substring(4,6),16);
   const t = percent/100;
-  const newR = Math.min(255, Math.max(0, Math.round(R + ( (t>0?255:0) - R) * Math.abs(t) )));
-  const newG = Math.min(255, Math.max(0, Math.round(G + ( (t>0?255:0) - G) * Math.abs(t) )));
-  const newB = Math.min(255, Math.max(0, Math.round(B + ( (t>0?255:0) - B) * Math.abs(t) )));
-  return `rgb(${newR},${newG},${newB})`;
+  const newR = Math.round(R + ((t>0?255:0) - R) * Math.abs(t));
+  const newG = Math.round(G + ((t>0?255:0) - G) * Math.abs(t));
+  const newB = Math.round(B + ((t>0?255:0) - B) * Math.abs(t));
+  return `rgb(${clamp(newR,0,255)},${clamp(newG,0,255)},${clamp(newB,0,255)})`;
 }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
 
-/* ----------------- small polish: menu interactions ----------------- */
-const startBtn = document.getElementById('startBtn');
-const customBtn = document.getElementById('customBtn');
-const menuEl = document.querySelector('.menu');
+/* ---------------- animation loop ---------------- */
+let last = performance.now();
+function frame(now){
+  const dt = Math.min((now - last)/1000, 0.033);
+  last = now;
+  state.time += dt;
 
-startBtn.addEventListener('click', ()=>{
-  // simple dismiss with a little zoom-in animation
-  menuEl.style.transition = 'transform 420ms cubic-bezier(.2,.9,0,1), opacity 320ms';
-  menuEl.style.transform = 'translateX(-50%) translateY(-10%) scale(.96)';
-  menuEl.style.opacity = '0';
-  setTimeout(()=> menuEl.style.display = 'none', 360);
-});
+  // normalized pointer -1..1
+  const nx = (pointer.x / Math.max(window.innerWidth,1) - 0.5) * 2;
+  const ny = (pointer.y / Math.max(window.innerHeight,1) - 0.5) * 2;
 
-customBtn.addEventListener('click', ()=>{
-  // open simple in-place customizer: prompt color pickers quickly
-  const body = prompt('Body color hex (e.g. #ff6b6b):', '#ff6b6b') || '#ff6b6b';
-  const hair = prompt('Hair color hex (e.g. #222222):', '#222222') || '#222222';
-  const acc = prompt('Accent color hex (e.g. #60a5fa):', '#60a5fa') || '#60a5fa';
-  // we will slightly shift sky colors by applying blend to gradients (not stored globally)
-  // animate a subtle color ripple by nudging drawn elements briefly
-  animateCustomizerChoice(body, hair, acc);
-});
+  // target offsets smaller range so effect is subtle
+  state.tx = nx * 0.5;
+  state.ty = ny * 0.35;
 
-/* subtle visual response when customizing */
-function animateCustomizerChoice(body, hair, acc){
-  // quick pulse: draw a semi-transparent overlay then fade
-  const overlay = document.createElement('div');
-  overlay.style.position = 'fixed'; overlay.style.left = 0; overlay.style.top = 0; overlay.style.width = '100%'; overlay.style.height = '100%';
-  overlay.style.background = '#0000'; overlay.style.pointerEvents = 'none'; overlay.style.transition = 'background 520ms';
-  document.body.appendChild(overlay);
-  requestAnimationFrame(()=> overlay.style.background = 'rgba(255,200,160,0.06)');
-  setTimeout(()=> { overlay.style.background = 'transparent'; setTimeout(()=> overlay.remove(), 520); }, 300);
+  // smooth lerp of offset
+  state.offsetX = lerp(state.offsetX || 0, state.tx, Math.min(1, 6*dt));
+  state.offsetY = lerp(state.offsetY || 0, state.ty, Math.min(1, 6*dt));
+
+  // draw to low-res offscreen canvas
+  offCtx.clearRect(0,0,off.width, off.height);
+  drawScene(offCtx, off.width, off.height, state);
+
+  // upscale to main canvas with pixelated look
+  ctx.imageSmoothingEnabled = false;
+  // compute scale to fit full screen while preserving low-res aspect
+  const scaleX = canvas.width / off.width;
+  const scaleY = canvas.height / off.height;
+  // draw scaled
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(off, 0, 0, off.width, off.height, 0, 0, canvas.width, canvas.height);
+
+  requestAnimationFrame(frame);
 }
+requestAnimationFrame(frame);
 
-/* initial tiny entrance flourish for title (pixelated jitter) */
-(function titlePulse(){
-  const el = document.querySelector('.title');
-  el.style.transformOrigin = 'center';
-  el.animate([
-    { transform: 'translateY(-6px) scale(1.02)' },
-    { transform: 'translateY(0px) scale(1)' }
-  ], { duration: 900, easing: 'cubic-bezier(.2,.9,0,1)', iterations: 1 });
-})();
+/* ---------------- menu interaction ---------------- */
+const menu = document.getElementById('menu');
+function continueAction(){
+  if(menu.classList.contains('hidden')) return;
+  menu.classList.add('hidden');
+}
+window.addEventListener('pointerdown', () => { continueAction(); }, {passive:true});
+window.addEventListener('touchstart', () => { continueAction(); }, {passive:true});
 
-/* Make background subtly follow mouse horizontally even before moving (center->mouse) */
-/* (cursor element already follows mouse) */
+/* ---------------- utilities (tiny pixel helpers if needed) ---------------- */
+/* none additional */
 
 </script>
 </body>
