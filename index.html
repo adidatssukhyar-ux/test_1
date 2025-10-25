@@ -2,9 +2,38 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Solar System Demo (ESM)</title>
+  <title>The Lonely Voyager</title>
   <style>
     body { margin: 0; overflow: hidden; background: black; font-family: monospace; }
+    #menu, #backBtn {
+      position: absolute; top: 20px; left: 20px; color: #0f0;
+      font-family: monospace;
+    }
+    #menu {
+      display: flex; flex-direction: column; align-items: flex-start;
+    }
+    #menu h1 {
+      margin: 0 0 20px 0;
+      font-size: 28px;
+      text-shadow: 0 0 5px #0f0;
+    }
+    #menu button, #backBtn {
+      margin: 10px 0;
+      padding: 10px 20px;
+      background: black;
+      color: #0f0;
+      border: 1px solid #0f0;
+      cursor: pointer;
+      font-family: monospace;
+      width: 220px;
+      text-align: left;
+    }
+    #menu button:hover, #backBtn:hover {
+      background: #0f0;
+      color: black;
+    }
+    #backBtn { display: none; }
+
     #tooltip {
       position: absolute;
       padding: 4px 8px;
@@ -18,12 +47,18 @@
   </style>
 </head>
 <body>
+  <div id="menu">
+    <h1>The Lonely Voyager</h1>
+    <button id="exploreBtn">Explore the Solar System</button>
+    <button id="rideBtn">Ride the Voyager</button>
+  </div>
+  <button id="backBtn">← Back</button>
   <div id="tooltip"></div>
 
-  <script type="module">
-    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
-    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
-
+  <!-- ✅ Pin to r149 so OrbitControls works -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/controls/OrbitControls.js"></script>
+  <script>
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 3000);
     camera.position.set(0, 0, 400);
@@ -32,23 +67,62 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    const controls = new OrbitControls(camera, renderer.domElement);
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.target.set(0,0,0);
+
+    // Starfield
+    const starGeo = new THREE.BufferGeometry();
+    const starCount = 2000;
+    const positions = [];
+    for (let i=0;i<starCount;i++){
+      positions.push((Math.random()-0.5)*3000,(Math.random()-0.5)*3000,(Math.random()-0.5)*3000);
+    }
+    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions,3));
+    const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({color:0xffffff, size:1}));
+    scene.add(stars);
+
+    // Voyager probe
+    const voyager = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(8,6,6), new THREE.MeshBasicMaterial({color:0x6688ff}));
+    voyager.add(body);
+    const dish = new THREE.Mesh(new THREE.CylinderGeometry(0,20,6,32,1,true), new THREE.MeshBasicMaterial({color:0xffffcc, side:THREE.DoubleSide}));
+    dish.rotation.x = Math.PI/2; dish.position.set(18,0,0);
+    voyager.add(dish);
+    scene.add(voyager);
+
+    // Solar system
+    const solarSystem = new THREE.Group();
+    solarSystem.visible = false;
+    scene.add(solarSystem);
 
     const sun = new THREE.Mesh(new THREE.SphereGeometry(25,32,32), new THREE.MeshBasicMaterial({color:0xffcc00}));
-    scene.add(sun);
+    solarSystem.add(sun);
 
     const planets = [];
     const planetData = [
+      {name:"Mercury", color:0xaaaaaa, dist:60, size:3, speed:0.002},
+      {name:"Venus", color:0xffaa33, dist:90, size:6, speed:0.0015},
       {name:"Earth", color:0x2266ff, dist:130, size:6.5, speed:0.0012},
-      {name:"Mars", color:0xff3300, dist:170, size:5, speed:0.001}
+      {name:"Mars", color:0xff3300, dist:170, size:5, speed:0.001},
+      {name:"Jupiter", color:0xd2b48c, dist:220, size:14, speed:0.0008},
+      {name:"Saturn", color:0xffe4b5, dist:280, size:12, speed:0.0006},
+      {name:"Uranus", color:0x66ccff, dist:340, size:10, speed:0.0004},
+      {name:"Neptune", color:0x3333ff, dist:400, size:10, speed:0.0003}
     ];
     planetData.forEach((data,i)=>{
       const mesh = new THREE.Mesh(new THREE.SphereGeometry(data.size,32,32), new THREE.MeshBasicMaterial({color:data.color}));
       mesh.userData = data;
-      scene.add(mesh);
+      solarSystem.add(mesh);
       planets.push(mesh);
     });
 
+    let exploring = false;
+    let driftingOut = false;
+    let driftingIn = false;
+
+    // Tooltip
     const tooltip = document.getElementById('tooltip');
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
@@ -61,29 +135,80 @@
 
     function animate(){
       requestAnimationFrame(animate);
-      sun.rotation.y += 0.001;
-      planets.forEach((p,i)=>{
-        const d = p.userData.dist;
-        const s = p.userData.speed;
-        p.position.x = Math.cos(Date.now()*s*0.1 + i) * d;
-        p.position.z = Math.sin(Date.now()*s*0.1 + i) * d;
-      });
-      raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(planets);
-      if(intersects.length > 0){
-        tooltip.style.display = 'block';
-        tooltip.style.left = (tooltip.dataset.mouseX*1 + 10) + 'px';
-        tooltip.style.top = (tooltip.dataset.mouseY*1 + 10) + 'px';
-        tooltip.textContent = intersects[0].object.userData.name;
-      } else {
-        tooltip.style.display = 'none';
+      stars.rotation.y += 0.0005;
+
+      if(!exploring && !driftingIn){
+        voyager.rotation.y += 0.01;
       }
+
+      if(driftingOut){
+        voyager.position.x += 2;
+        voyager.position.y += 0.5;
+        voyager.rotation.z += 0.05;
+        if(voyager.position.x > 200){
+          driftingOut = false;
+          voyager.visible = false;
+          solarSystem.visible = true;
+          exploring = true;
+          document.getElementById('backBtn').style.display = 'block';
+        }
+      }
+
+      if(driftingIn){
+        voyager.visible = true;
+        voyager.position.x -= 2;
+        voyager.position.y -= 0.5;
+        voyager.rotation.z -= 0.05;
+        if(voyager.position.x <= 0){
+          driftingIn = false;
+          exploring = false;
+          voyager.position.set(0,0,0);
+          voyager.rotation.set(0,0,0);
+          document.getElementById('menu').style.display = 'flex';
+        }
+      }
+
+      if(exploring){
+        sun.rotation.y += 0.001;
+        planets.forEach((p,i)=>{
+          const d = p.userData.dist;
+          const s = p.userData.speed;
+          p.position.x = Math.cos(Date.now()*s*0.1 + i) * d;
+          p.position.z = Math.sin(Date.now()*s*0.1 + i) * d;
+        });
+
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(planets);
+        if(intersects.length > 0){
+          const planet = intersects[0].object;
+          tooltip.style.display = 'block';
+          tooltip.style.left = (tooltip.dataset.mouseX*1 + 10) + 'px';
+          tooltip.style.top = (tooltip.dataset.mouseY*1 + 10) + 'px';
+          tooltip.textContent = planet.userData.name;
+        } else {
+          tooltip.style.display = 'none';
+        }
+      }
+
       controls.update();
       renderer.render(scene,camera);
     }
     animate();
 
-    window.addEventListener('resize', ()=>{
+    // Buttons
+    document.getElementById('exploreBtn').addEventListener('click', ()=>{
+      document.getElementById('menu').style.display = 'none';
+      driftingOut = true;
+    });
+
+    document.getElementById('backBtn').addEventListener('click', ()=>{
+      document.getElementById('backBtn').style.display = 'none';
+      solarSystem.visible = false;
+      tooltip.style.display = 'none';
+      driftingIn = true;
+    });
+
+        window.addEventListener('resize', ()=>{
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
@@ -91,3 +216,5 @@
   </script>
 </body>
 </html>
+
+     
