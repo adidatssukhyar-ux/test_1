@@ -1,37 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Dream Atlas</title>
+  <meta charset="UTF-8">
+  <title>Time Atlas</title>
   <style>
     body {
       margin: 0;
-      overflow: hidden;
       font-family: 'Courier New', monospace;
       background: #0a0a0f;
       color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+      overflow: hidden;
     }
-    #canvas {
-      display: block;
+    header {
+      margin: 20px;
+      font-size: 1.5em;
+      letter-spacing: 2px;
     }
-    #ui {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(0,0,0,0.6);
-      padding: 10px;
-      border-radius: 6px;
-      max-width: 250px;
+    #controls {
+      margin: 10px;
+    }
+    input {
+      padding: 6px;
+      font-size: 1em;
+      width: 120px;
+      text-align: center;
+    }
+    button {
+      padding: 6px 12px;
+      margin-left: 6px;
+      background: #222;
+      color: #eee;
+      border: 1px solid #555;
+      cursor: pointer;
+    }
+    #history {
+      margin-top: 20px;
+      padding: 20px;
+      width: 60%;
+      min-height: 150px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.5s ease;
+    }
+    #history.show {
+      opacity: 1;
+      transform: translateY(0);
     }
     #bookmarks {
-      margin-top: 10px;
-      max-height: 150px;
+      margin-top: 20px;
+      width: 60%;
+      max-height: 200px;
       overflow-y: auto;
-      font-size: 0.9em;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      padding: 10px;
     }
     .bookmark {
       cursor: pointer;
-      padding: 2px 4px;
+      padding: 4px;
       border-bottom: 1px solid #333;
     }
     .bookmark:hover {
@@ -40,178 +73,67 @@
   </style>
 </head>
 <body>
-  <canvas id="canvas"></canvas>
-  <div id="ui">
-    <div><strong>Dream Atlas</strong></div>
-    <div id="lore">Click anywhere to explore…</div>
-    <button id="bookmarkBtn">Bookmark this place</button>
-    <div id="bookmarks"></div>
+  <header>🕰️ Time Atlas</header>
+  <div id="controls">
+    <input type="number" id="yearInput" placeholder="Enter year">
+    <button id="goBtn">Explore</button>
+    <button id="bookmarkBtn">Bookmark</button>
   </div>
+  <div id="history"></div>
+  <div id="bookmarks"></div>
 
   <script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Sample dataset (expand this with more years!)
+    const historyData = {
+      1347: "The Black Death begins spreading across Europe, reshaping societies.",
+      1492: "Christopher Columbus reaches the Americas, linking two worlds.",
+      1776: "The United States declares independence.",
+      1914: "World War I erupts, pulling nations into global conflict.",
+      1969: "Apollo 11 lands on the Moon. Humanity takes its first steps beyond Earth.",
+      1989: "The Berlin Wall falls, symbolizing the end of the Cold War.",
+      2020: "A global pandemic reshapes daily life and accelerates digital change."
+    };
 
-    let zoom = 1;
-    let offsetX = 0;
-    let offsetY = 0;
-
-    // Simplex noise for terrain
-    class SimplexNoise {
-      constructor(seed = Math.random()) {
-        this.grad3 = [
-          [1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],
-          [1,0,1],[-1,0,1],[1,0,-1],[-1,0,-1],
-          [0,1,1],[0,-1,1],[0,1,-1],[0,-1,-1]
-        ];
-        this.p = [];
-        for (let i=0; i<256; i++) {
-          this.p[i] = Math.floor(seed*256);
-          seed = (seed*9301 + 49297) % 233280 / 233280;
-        }
-        this.perm = [];
-        for(let i=0; i<512; i++) {
-          this.perm[i]=this.p[i & 255];
-        }
-      }
-      dot(g, x, y) { return g[0]*x + g[1]*y; }
-      noise(xin, yin) {
-        const grad3 = this.grad3;
-        const perm = this.perm;
-        let n0, n1, n2;
-        const F2 = 0.5*(Math.sqrt(3.0)-1.0);
-        const s = (xin+yin)*F2;
-        const i = Math.floor(xin+s);
-        const j = Math.floor(yin+s);
-        const G2 = (3.0-Math.sqrt(3.0))/6.0;
-        const t = (i+j)*G2;
-        const X0 = i-t;
-        const Y0 = j-t;
-        const x0 = xin-X0;
-        const y0 = yin-Y0;
-        let i1, j1;
-        if(x0>y0){i1=1; j1=0;} else {i1=0; j1=1;}
-        const x1 = x0 - i1 + G2;
-        const y1 = y0 - j1 + G2;
-        const x2 = x0 - 1.0 + 2.0 * G2;
-        const y2 = y0 - 1.0 + 2.0 * G2;
-        const ii = i & 255;
-        const jj = j & 255;
-        const gi0 = perm[ii+perm[jj]] % 12;
-        const gi1 = perm[ii+i1+perm[jj+j1]] % 12;
-        const gi2 = perm[ii+1+perm[jj+1]] % 12;
-        let t0 = 0.5 - x0*x0-y0*y0;
-        if(t0<0) n0=0.0;
-        else {
-          t0 *= t0;
-          n0 = t0 * t0 * this.dot(grad3[gi0], x0, y0);
-        }
-        let t1 = 0.5 - x1*x1-y1*y1;
-        if(t1<0) n1=0.0;
-        else {
-          t1 *= t1;
-          n1 = t1 * t1 * this.dot(grad3[gi1], x1, y1);
-        }
-        let t2 = 0.5 - x2*x2-y2*y2;
-        if(t2<0) n2=0.0;
-        else {
-          t2 *= t2;
-          n2 = t2 * t2 * this.dot(grad3[gi2], x2, y2);
-        }
-        return 70.0 * (n0 + n1 + n2);
-      }
-    }
-
-    const noise = new SimplexNoise();
-
-    function draw() {
-      const w = canvas.width;
-      const h = canvas.height;
-      const img = ctx.createImageData(w, h);
-      for (let y=0; y<h; y++) {
-        for (let x=0; x<w; x++) {
-          const nx = (x + offsetX) / (200*zoom);
-          const ny = (y + offsetY) / (200*zoom);
-          const e = noise.noise(nx, ny);
-          let r,g,b;
-          if (e < -0.1) { r=0; g=0; b=150; } // ocean
-          else if (e < 0.1) { r=240; g=240; b=120; } // beach
-          else if (e < 0.3) { r=34; g=139; b=34; } // forest
-          else { r=160; g=160; b=160; } // mountain
-          const idx = (y*w + x)*4;
-          img.data[idx] = r;
-          img.data[idx+1] = g;
-          img.data[idx+2] = b;
-          img.data[idx+3] = 255;
-        }
-      }
-      ctx.putImageData(img,0,0);
-    }
-
-    draw();
-
-    // Lore snippets
-    const loreSnippets = [
-      "The river remembers the first voyager.",
-      "Whispers of forgotten cities echo here.",
-      "Stars fell and became mountains.",
-      "This forest hums with ancient code.",
-      "The ocean hides a thousand secrets."
-    ];
-
-    function randomLore() {
-      return loreSnippets[Math.floor(Math.random()*loreSnippets.length)];
-    }
-
-    const loreDiv = document.getElementById('lore');
-    canvas.addEventListener('click', e => {
-      offsetX += (Math.random()-0.5)*500;
-      offsetY += (Math.random()-0.5)*500;
-      zoom *= 1.1;
-      draw();
-      loreDiv.textContent = randomLore();
-    });
-
-    // Bookmark system
-    const bookmarksDiv = document.getElementById('bookmarks');
+    const yearInput = document.getElementById('yearInput');
+    const goBtn = document.getElementById('goBtn');
+    const historyDiv = document.getElementById('history');
     const bookmarkBtn = document.getElementById('bookmarkBtn');
+    const bookmarksDiv = document.getElementById('bookmarks');
+
+    let currentYear = null;
     let bookmarks = [];
 
+    function showHistory(year) {
+      currentYear = year;
+      const text = historyData[year] || "No data found for this year... yet. Maybe you’ve discovered a hidden timeline!";
+      historyDiv.textContent = year + ": " + text;
+      historyDiv.classList.add('show');
+    }
+
+    goBtn.addEventListener('click', () => {
+      const year = parseInt(yearInput.value);
+      if (!isNaN(year)) {
+        showHistory(year);
+      }
+    });
+
     bookmarkBtn.addEventListener('click', () => {
-      const bm = {
-        x: offsetX,
-        y: offsetY,
-        z: zoom,
-        lore: loreDiv.textContent
-      };
-      bookmarks.push(bm);
-      renderBookmarks();
+      if (currentYear && !bookmarks.includes(currentYear)) {
+        bookmarks.push(currentYear);
+        renderBookmarks();
+      }
     });
 
     function renderBookmarks() {
-      bookmarksDiv.innerHTML = '';
-      bookmarks.forEach((bm, i) => {
+      bookmarksDiv.innerHTML = "<strong>Bookmarks:</strong>";
+      bookmarks.forEach(y => {
         const div = document.createElement('div');
         div.className = 'bookmark';
-        div.textContent = `Place ${i+1}: ${bm.lore}`;
-        div.addEventListener('click', () => {
-          offsetX = bm.x;
-          offsetY = bm.y;
-          zoom = bm.z;
-          loreDiv.textContent = bm.lore;
-          draw();
-        });
+        div.textContent = y + " → " + (historyData[y] || "Unknown");
+        div.addEventListener('click', () => showHistory(y));
         bookmarksDiv.appendChild(div);
       });
     }
-
-    window.addEventListener('resize', () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      draw();
-    });
   </script>
 </body>
 </html>
