@@ -42,13 +42,10 @@
   <script>
     // Scene + Camera
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(
-      60, window.innerWidth / window.innerHeight, 0.1, 2000
-    );
-    camera.position.set(0, 0, 120);
-    camera.lookAt(0, 0, 0);
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 2000);
+    camera.position.set(0, 0, 250);
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    const renderer = new THREE.WebGLRenderer({antialias:true});
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
@@ -56,71 +53,104 @@
     const starGeo = new THREE.BufferGeometry();
     const starCount = 2000;
     const positions = [];
-    for (let i = 0; i < starCount; i++) {
+    for (let i=0;i<starCount;i++){
       positions.push(
-        (Math.random() - 0.5) * 2000,
-        (Math.random() - 0.5) * 2000,
-        (Math.random() - 0.5) * 2000
+        (Math.random()-0.5)*2000,
+        (Math.random()-0.5)*2000,
+        (Math.random()-0.5)*2000
       );
     }
-    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-    const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 1 });
+    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(positions,3));
+    const starMat = new THREE.PointsMaterial({color:0xffffff, size:1});
     const stars = new THREE.Points(starGeo, starMat);
     scene.add(stars);
 
-    // Voyager model (simplified)
-    const bodyGeo = new THREE.BoxGeometry(8, 6, 6);
-    const bodyMat = new THREE.MeshBasicMaterial({ color: 0x6688ff });
-    const body = new THREE.Mesh(bodyGeo, bodyMat);
-    scene.add(body);
+    // Voyager model
+    const bodyGeo = new THREE.BoxGeometry(8,6,6);
+    const bodyMat = new THREE.MeshBasicMaterial({color:0x6688ff});
+    const voyager = new THREE.Mesh(bodyGeo, bodyMat);
+    scene.add(voyager);
 
-    const dishGeo = new THREE.CylinderGeometry(0, 20, 6, 32, 1, true);
-    const dishMat = new THREE.MeshBasicMaterial({ color: 0xffffcc, side: THREE.DoubleSide });
+    const dishGeo = new THREE.CylinderGeometry(0,20,6,32,1,true);
+    const dishMat = new THREE.MeshBasicMaterial({color:0xffffcc, side:THREE.DoubleSide});
     const dish = new THREE.Mesh(dishGeo, dishMat);
-    dish.rotation.x = Math.PI / 2;
-    dish.position.set(18, 0, 0);
-    body.add(dish);
+    dish.rotation.x = Math.PI/2;
+    dish.position.set(18,0,0);
+    voyager.add(dish);
 
-    const boomGeo = new THREE.CylinderGeometry(0.2, 0.2, 40, 8);
-    const boomMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    const boom = new THREE.Mesh(boomGeo, boomMat);
-    boom.rotation.z = Math.PI / 2;
-    boom.position.set(-30, 0, 0);
-    body.add(boom);
+    // Solar system container (hidden at first)
+    const solarSystem = new THREE.Group();
+    solarSystem.visible = false;
+    scene.add(solarSystem);
 
-    const recordGeo = new THREE.CircleGeometry(2, 32);
-    const recordMat = new THREE.MeshBasicMaterial({ color: 0xffd700 });
-    const record = new THREE.Mesh(recordGeo, recordMat);
-    record.rotation.y = Math.PI / 2;
-    record.position.set(0, 0, 3.5);
-    body.add(record);
+    // Sun
+    const sunGeo = new THREE.SphereGeometry(20,32,32);
+    const sunMat = new THREE.MeshBasicMaterial({color:0xffcc00});
+    const sun = new THREE.Mesh(sunGeo, sunMat);
+    solarSystem.add(sun);
+
+    // Planets
+    const planets = [];
+    const planetData = [
+      {color:0xaaaaaa, dist:40, size:4, speed:0.01},
+      {color:0xff8800, dist:70, size:6, speed:0.008},
+      {color:0x2266ff, dist:100, size:6.5, speed:0.006},
+      {color:0xff3300, dist:130, size:5, speed:0.005}
+    ];
+    planetData.forEach(data=>{
+      const geo = new THREE.SphereGeometry(data.size,32,32);
+      const mat = new THREE.MeshBasicMaterial({color:data.color});
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.userData = data;
+      solarSystem.add(mesh);
+      planets.push(mesh);
+    });
 
     // Animate
-    function animate() {
+    let exploring = false;
+    function animate(){
       requestAnimationFrame(animate);
-      body.rotation.y += 0.002;
+
       stars.rotation.y += 0.0005;
-      renderer.render(scene, camera);
+
+      if(!exploring){
+        voyager.rotation.y += 0.01;
+      } else {
+        sun.rotation.y += 0.002;
+        planets.forEach((p,i)=>{
+          const d = p.userData.dist;
+          const s = p.userData.speed;
+          p.position.x = Math.cos(Date.now()*s*0.1 + i) * d;
+          p.position.z = Math.sin(Date.now()*s*0.1 + i) * d;
+          p.rotation.y += 0.01;
+        });
+      }
+
+      renderer.render(scene,camera);
     }
     animate();
 
     // Button click
-    document.getElementById('exploreBtn').addEventListener('click', () => {
+    document.getElementById('exploreBtn').addEventListener('click', ()=>{
       document.getElementById('menu').style.display = 'none';
-      startSolarSystem();
+      // Animate voyager drifting away
+      let t=0;
+      const drift = setInterval(()=>{
+        t+=1;
+        voyager.position.x += 2;
+        voyager.position.y += 0.5;
+        voyager.rotation.z += 0.05;
+        if(t>50){
+          clearInterval(drift);
+          voyager.visible = false;
+          solarSystem.visible = true;
+          exploring = true;
+        }
+      },30);
     });
 
-    function startSolarSystem() {
-      // Placeholder: add a planet
-      const planetGeo = new THREE.SphereGeometry(20, 32, 32);
-      const planetMat = new THREE.MeshBasicMaterial({ color: 0x2266ff });
-      const planet = new THREE.Mesh(planetGeo, planetMat);
-      planet.position.set(60, 0, 0);
-      scene.add(planet);
-    }
-
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
+    window.addEventListener('resize', ()=>{
+      camera.aspect = window.innerWidth/window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
