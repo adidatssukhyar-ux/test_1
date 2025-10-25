@@ -1,121 +1,87 @@
 <!doctype html>
-<html lang="en">
+<html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pick Your Power — Pixel Fighter</title>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<title>Code‑Only Pixel Fighter</title>
 <style>
-  :root{--bg:#030215;--accent:#9be7ff;--muted:#9bb0c8;}
-  html,body{height:100%;margin:0;background:var(--bg);font-family:'Press Start 2P',monospace;color:#eaf6ff;}
-  #bg{position:absolute;inset:0;width:100%;height:100%;display:block;background:transparent;}
-  .menu{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);text-align:center;z-index:10}
-  .title{font-size:32px;color:var(--accent);text-shadow:0 12px 40px rgba(0,0,0,0.8)}
-  .prompt{margin-top:16px;font-size:12px;color:var(--muted)}
-  .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:20}
-  .customizer{position:fixed;right:20px;top:50%;transform:translateY(-50%);width:360px;padding:16px;border-radius:12px;
-    background:rgba(255,255,255,0.05);box-shadow:0 12px 40px rgba(0,0,0,0.7);display:none;z-index:15}
-  .customizer.visible{display:block}
-  .preview{width:192px;height:288px;margin:8px auto;background:#081226;border:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center}
-  canvas.pixel{image-rendering:pixelated}
-  label{font-size:12px;color:var(--muted);display:block;margin-top:8px}
-  select,input[type="color"],input[type="range"]{width:100%;padding:6px;border-radius:6px;background:transparent;border:1px solid rgba(255,255,255,0.08);color:#eaf6ff}
-  .btn{margin-top:10px;padding:6px 10px;border-radius:6px;border:none;background:#1b2b3a;color:var(--accent);cursor:pointer}
+  body { margin:0; background:#000; font-family:'Press Start 2P',monospace; color:#9be7ff; }
+  #bg { position:absolute; inset:0; width:100%; height:100%; }
+  .menu { position:absolute; left:50%; top:40%; transform:translate(-50%,-50%); text-align:center; z-index:10 }
+  .title { font-size:32px; text-shadow:0 0 12px #000 }
+  .prompt { font-size:12px; color:#9bb0c8; margin-top:12px }
+  .flash { position:absolute; inset:0; background:#fff; opacity:0; z-index:20; pointer-events:none }
+  .customizer { display:none; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:#000 }
+  canvas.pixel { image-rendering:pixelated; width:160px; height:240px; }
 </style>
 </head>
 <body>
 <canvas id="bg"></canvas>
-
 <div class="menu" id="menu">
   <div class="title">PICK YOUR POWER!</div>
   <div class="prompt">PRESS ANYWHERE TO CONTINUE</div>
 </div>
-
 <div class="flash" id="flash"></div>
-
 <div class="customizer" id="customizer">
-  <div class="preview"><canvas id="preview" class="pixel" width="16" height="24"></canvas></div>
-  <label>Start State</label>
-  <select id="startState"><option value="pantsOnly">Pants only (bald)</option><option value="full">Full</option></select>
-  <label>Skin</label><input id="skinColor" type="color" value="#ffd7c4">
-  <label>Pants</label><input id="pantsColor" type="color" value="#2b4b7a">
-  <label>Hair Style</label>
-  <select id="hairStyle"><option value="none">None</option><option value="short">Short</option><option value="spiky">Spiky</option></select>
-  <label>Hair Color</label><input id="hairColor" type="color" value="#222222">
-  <label>Eyes</label>
-  <select id="eyesStyle"><option value="none">None</option><option value="round">Round</option><option value="sharp">Sharp</option></select>
-  <label>Eye Color</label><input id="eyesColor" type="color" value="#000000">
-  <button id="reset" class="btn">Reset</button>
+  <canvas id="fighter" class="pixel" width="16" height="24"></canvas>
 </div>
 
 <script>
-/* ---------- Starfield background ---------- */
-const bg = document.getElementById('bg');
-const ctx = bg.getContext('2d');
-let DPR = window.devicePixelRatio||1;
-function fit(){bg.width=innerWidth*DPR;bg.height=innerHeight*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);}
-fit();window.addEventListener('resize',fit);
-const stars = Array.from({length:200},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*2+1}));
+/* --- Starfield menu --- */
+const bg=document.getElementById('bg'), ctx=bg.getContext('2d');
+function fit(){ bg.width=innerWidth; bg.height=innerHeight; }
+fit(); addEventListener('resize',fit);
+const stars=Array.from({length:200},()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*2+1}));
 const pointer={x:innerWidth/2,y:innerHeight/2,sx:0,sy:0};
-window.addEventListener('mousemove',e=>{pointer.x=e.clientX;pointer.y=e.clientY;});
+addEventListener('mousemove',e=>{pointer.x=e.clientX;pointer.y=e.clientY;});
 function loop(){
-  ctx.fillStyle="#000814";ctx.fillRect(0,0,innerWidth,innerHeight);
-  const nx=(pointer.x/innerWidth-0.5)*2,ny=(pointer.y/innerHeight-0.5)*2;
-  pointer.sx+= (nx-pointer.sx)*0.05; pointer.sy+= (ny-pointer.sy)*0.05;
+  ctx.fillStyle="#000814"; ctx.fillRect(0,0,innerWidth,innerHeight);
+  const nx=(pointer.x/innerWidth-0.5)*2, ny=(pointer.y/innerHeight-0.5)*2;
+  pointer.sx+=(nx-pointer.sx)*0.05; pointer.sy+=(ny-pointer.sy)*0.05;
   stars.forEach((s,i)=>{
     ctx.fillStyle="#fff";
-    ctx.fillRect(s.x+pointer.sx*(i%3),s.y+pointer.sy*(i%3),s.r,s.r);
+    ctx.fillRect(s.x+pointer.sx*(i%3), s.y+pointer.sy*(i%3), s.r, s.r);
   });
   requestAnimationFrame(loop);
 }
 loop();
 
-/* ---------- Transition ---------- */
+/* --- Transition --- */
 const menu=document.getElementById('menu');
 const flash=document.getElementById('flash');
 const customizer=document.getElementById('customizer');
 function continueAction(){
-  flash.style.transition='none';flash.style.opacity='1';
-  requestAnimationFrame(()=>{flash.style.transition='opacity 500ms';flash.style.opacity='0';});
-  setTimeout(()=>{menu.style.display='none';customizer.classList.add('visible');},200);
-  window.removeEventListener('pointerdown',continueAction);
+  flash.style.transition='none'; flash.style.opacity='1';
+  requestAnimationFrame(()=>{flash.style.transition='opacity 500ms'; flash.style.opacity='0';});
+  setTimeout(()=>{menu.style.display='none'; customizer.style.display='flex'; drawFighter();},200);
+  removeEventListener('pointerdown',continueAction);
 }
-window.addEventListener('pointerdown',continueAction);
+addEventListener('pointerdown',continueAction);
 
-/* ---------- Pixel Fighter (FNaF style) ---------- */
-const pv=document.getElementById('preview');const pctx=pv.getContext('2d');
-const model={startState:'pantsOnly',skin:'#ffd7c4',pants:'#2b4b7a',hairStyle:'none',hairColor:'#222222',eyesStyle:'none',eyesColor:'#000'};
-function drawSprite(){
-  pctx.clearRect(0,0,pv.width,pv.height);
-  const s=model.skin, p=model.pants, h=model.hairColor, e=model.eyesColor;
-  // Head
-  if(model.startState!=='pantsOnly'||true){
-    pctx.fillStyle=s; pctx.fillRect(6,2,4,4);
-    if(model.hairStyle==='spiky'){pctx.fillStyle=h;pctx.fillRect(5,1,6,1);}
-    if(model.eyesStyle==='round'){pctx.fillStyle=e;pctx.fillRect(6,3,1,1);pctx.fillRect(9,3,1,1);}
-  }
-  // Torso
-  if(model.startState!=='pantsOnly'){pctx.fillStyle=s;pctx.fillRect(6,6,4,6);}
-  // Pants
-  pctx.fillStyle=p;pctx.fillRect(6,12,4,3);
-  // Legs
-  pctx.fillStyle=p;pctx.fillRect(6,15,1,5);pctx.fillRect(9,15,1,5);
+/* --- Code‑only pixel fighter --- */
+const f=document.getElementById('fighter'), fctx=f.getContext('2d');
+function drawFighter(){
+  fctx.clearRect(0,0,f.width,f.height);
+  // Define sprite as 2D array of colors (null = transparent)
+  const skin="#ffd7c4", pants="#2b4b7a", hair="#222", eyes="#000";
+  const sprite=[
+    // head
+    [null,null,skin,skin,skin,skin,null,null,null,null,null,null,null,null,null,null],
+    [null,skin,skin,eyes,eyes,skin,skin,null,null,null,null,null,null,null,null,null],
+    [null,skin,skin,skin,skin,skin,skin,null,null,null,null,null,null,null,null,null],
+    // torso
+    [null,skin,skin,skin,skin,skin,skin,null,null,null,null,null,null,null,null,null],
+    [null,skin,skin,skin,skin,skin,skin,null,null,null,null,null,null,null,null,null],
+    // pants
+    [null,pants,pants,pants,pants,pants,pants,null,null,null,null,null,null,null,null,null],
+    [null,pants,null,null,null,null,pants,null,null,null,null,null,null,null,null,null],
+    // legs
+    [null,pants,null,null,null,null,pants,null,null,null,null,null,null,null,null,null],
+    [null,pants,null,null,null,null,pants,null,null,null,null,null,null,null,null,null],
+    // feet
+    [null,"#333",null,null,null,null,"#333",null,null,null,null,null,null,null,null,null],
+  ];
+  sprite.forEach((row,y)=>row.forEach((col,x)=>{ if(col){ fctx.fillStyle=col; fctx.fillRect(x,y,1,1); } }));
 }
-function sync(){
-  model.startState=document.getElementById('startState').value;
-  model.skin=document.getElementById('skinColor').value;
-  model.pants=document.getElementById('pantsColor').value;
-  model.hairStyle=document.getElementById('hairStyle').value;
-  model.hairColor=document.getElementById('hairColor').value;
-  model.eyesStyle=document.getElementById('eyesStyle').value;
-  model.eyesColor=document.getElementById('eyesColor').value;
-  drawSprite();
-}
-['startState','skinColor','pantsColor','hairStyle','hairColor','eyesStyle','eyesColor'].forEach(id=>{
-  document.getElementById(id).addEventListener('input',sync);
-});
-document.getElementById('reset').addEventListener('click',()=>{model.startState='pantsOnly';model.skin='#ffd7c4';model.pants='#2b4b7a';model.hairStyle='none';model.hairColor='#222222';model.eyesStyle='none';model.eyesColor='#000';sync();});
-sync();
 </script>
 </body>
 </html>
