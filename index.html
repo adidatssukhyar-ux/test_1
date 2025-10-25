@@ -528,23 +528,93 @@ document.addEventListener('keydown', (e) => {
 function handleClick() {
   const now = Date.now();
 
-  // Combo timing
-  if (now - state.lastClickTime < CONFIG.comboWindowMs) {
+  // Combo logic (400ms window, capped at +5)
+  if (now - state.lastClickTime < 400) {
     state.comboCount++;
   } else {
     state.comboCount = 0;
   }
   state.lastClickTime = now;
 
-  // Energy gain
-  let energyGain = CONFIG.baseEnergyPerClick + Math.min(state.comboCount, CONFIG.comboBonusCap);
+  let energyGain = 2 + Math.min(state.comboCount, 5);
 
-  // Critical hit
-  if (Math.random() < CONFIG.critChance) {
-    energyGain = Math.floor(energyGain * CONFIG.critMultiplier);
+  // Critical hit (10% chance, 1.5× multiplier)
+  if (Math.random() < 0.10) {
+    energyGain = Math.floor(energyGain * 1.5);
     showBanner('CRIT!!');
     pulsePow('CRIT!!');
   }
+
+  state.energy += energyGain;
+  energyVal.textContent = state.energy; // ensure number updates immediately
+
+  // Current level name
+  const levelName = CONFIG.levels[state.levelIndex]?.name;
+
+  switch (levelName) {
+    case "Punch":
+      impactPunch();
+      document.getElementById('sfxSaitama')?.play(); // Saitama punch sound
+      damageClosest('wall', 1);
+      break;
+
+    case "Super Strength Punch":
+      impactSuperStrength();
+      sfxStrength?.play();
+      damageClosest('building', 2);
+      break;
+
+    case "Supernova":
+      impactSupernova();
+      destroyRandomBig();
+      break;
+
+    case "Meteor Rain":
+      impactSuperStrength();
+      showBanner('METEOR RAIN!');
+      sfxMeteor?.play();
+      meteorRain();
+      destroyRandomBig();
+      destroyRandomBig();
+      break;
+
+    case "Black Hole":
+      impactSuperStrength();
+      showBanner('BLACK HOLE!');
+      sfxBlackhole?.play();
+      blackHole();
+      suckAllObjects();
+      break;
+
+    case "Universal":
+      impactSuperStrength();
+      showBanner('UNIVERSAL!');
+      flashScreen(500);
+      wipeObjects();
+      break;
+
+    case "Outerversal":
+      impactSuperStrength();
+      showBanner('OUTERVERSAL!');
+      meteorRain();
+      blackHole();
+      break;
+
+    case "Boundless":
+      if (state.energy >= 100000) {
+        showBanner('BOUNDLESS!!!');
+        triggerBoundlessChaos();
+      }
+      break;
+  }
+
+  // Update combo meter HUD
+  const comboMeter = document.getElementById('comboMeter');
+  if (comboMeter) comboMeter.textContent = `Combo: ${state.comboCount}`;
+
+  updateProgress();
+  autoSceneGrowth();
+}
 
   state.energy += energyGain;
   updateProgress();
