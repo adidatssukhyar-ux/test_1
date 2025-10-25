@@ -34,7 +34,6 @@
     }
     #backBtn { display: none; }
 
-    /* Tooltip for planet names */
     #tooltip {
       position: absolute;
       padding: 4px 8px;
@@ -119,7 +118,6 @@
       solarSystem.add(mesh);
       planets.push(mesh);
 
-      // Orbit ring
       const ring = new THREE.Mesh(
         new THREE.RingGeometry(data.dist-0.2, data.dist+0.2, 128),
         new THREE.MeshBasicMaterial({color:0x444444, side:THREE.DoubleSide})
@@ -136,13 +134,13 @@
     const tooltip = document.getElementById('tooltip');
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
-
     window.addEventListener('mousemove', (event)=>{
       mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      tooltip.dataset.mouseX = event.clientX;
+      tooltip.dataset.mouseY = event.clientY;
     });
-
-    function animate(){
+  function animate(){
       requestAnimationFrame(animate);
       stars.rotation.y += 0.0005;
 
@@ -193,8 +191,8 @@
         if(intersects.length > 0){
           const planet = intersects[0].object;
           tooltip.style.display = 'block';
-          tooltip.style.left = (event.clientX+10) + 'px';
-          tooltip.style.top = (event.clientY+10) + 'px';
+          tooltip.style.left = (tooltip.dataset.mouseX*1 + 10) + 'px';
+          tooltip.style.top = (tooltip.dataset.mouseY*1 + 10) + 'px';
           tooltip.textContent = planet.userData.name;
         } else {
           tooltip.style.display = 'none';
@@ -205,21 +203,7 @@
     }
     animate();
 
-    // Buttons
-    document.getElementById('exploreBtn').addEventListener('click', ()=>{
-      document.getElementById('menu').style.display = 'none';
-      driftingOut = true;
-    });
-
-    document.getElementById('backBtn').addEventListener('click', ()=>{
-      document.getElementById('backBtn').style.display = 'none';
-      solarSystem.visible = false;
-      tooltip.style.display = 'none';
-      driftingIn = true;
-    });
-
-    window.addEventListener('resize'...)
-    // Buttons
+        // Buttons
     document.getElementById('exploreBtn').addEventListener('click', ()=>{
       document.getElementById('menu').style.display = 'none';
       driftingOut = true;
