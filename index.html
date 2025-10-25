@@ -6,52 +6,83 @@
 <title>Pick Your Power — Pixel Anime Customizer</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#05071a;--panel:rgba(255,255,255,0.03);--accent:#ffd88a;--muted:#9fb5d6;}
-  html,body{height:100%;margin:0;background:var(--bg);font-family:Inter,system-ui,Roboto,Arial;color:#eaf6ff;-webkit-font-smoothing:antialiased;}
-  #app{display:flex;gap:18px;padding:18px;box-sizing:border-box;height:100vh;}
-  .scene{flex:1;display:flex;align-items:center;justify-content:center;position:relative;border-radius:12px;overflow:hidden}
-  canvas#bg{width:100%;height:100%;display:block;background:linear-gradient(180deg,#05112b,#020416);}
-  .panel{width:420px;padding:18px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);box-shadow:0 8px 40px rgba(0,0,0,0.6);}
-  h2{margin:4px 0 12px 0;font-size:16px;color:var(--accent)}
-  label{display:block;color:var(--muted);font-size:13px;margin-bottom:6px}
+  :root{
+    --bg:#040417; --panel:rgba(255,255,255,0.03); --accent:#ffd88a; --muted:#9fb5d6;
+  }
+  html,body{height:100%;margin:0;background:var(--bg);font-family:Inter,system-ui,Roboto,Arial;color:#eaf6ff;}
+  #app{position:relative;height:100vh;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+  canvas{display:block; image-rendering:pixelated; background:transparent;}
+  /* Menu overlay */
+  .menu{
+    position:absolute; left:50%; top:38%; transform:translate(-50%,-50%); text-align:center; z-index:40;
+    pointer-events:auto;
+  }
+  .title{
+    font-family:'Press Start 2P',monospace; color:var(--accent); font-size:36px; letter-spacing:2px;
+    text-shadow:0 10px 30px rgba(0,0,0,0.7);
+  }
+  .prompt{
+    margin-top:16px; font-family:'Press Start 2P',monospace; color:var(--muted); font-size:12px;
+  }
+  /* flash */
+  .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:80}
+  /* Customizer panel */
+  .panel{
+    position:absolute; right:28px; top:50%; transform:translateY(-50%); width:420px; padding:16px; border-radius:12px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    box-shadow:0 12px 40px rgba(0,0,0,0.6); z-index:50; display:none;
+    backdrop-filter: blur(6px);
+  }
+  .panel.visible{display:block}
+  .preview{width:240px;height:360px;background:linear-gradient(180deg,#081226,#021223);border-radius:10px;padding:12px;margin:6px auto;border:1px solid rgba(255,255,255,0.04)}
+  label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
   .row{display:flex;gap:8px;align-items:center;margin-bottom:10px}
   select,input[type="color"],input[type="range"]{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:#eaf6ff}
-  .preview-wrap{display:flex;align-items:center;justify-content:center;margin-bottom:12px}
-  .preview{width:240px;height:360px;background:#071428;border-radius:8px;padding:12px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.04)}
-  .btn{padding:8px 10px;border-radius:8px;border:none;background:linear-gradient(180deg,#1b2b3a,#0f1a24);color:var(--accent);cursor:pointer;font-weight:700}
+  .btn{padding:8px 10px;border-radius:8px;border:none;background:linear-gradient(180deg,#1b2b3a,#0f1a24);color:var(--accent);cursor:pointer}
   .small{font-size:13px;padding:6px 8px}
-  .note{font-size:12px;color:var(--muted);margin-top:10px}
-  @media (max-width:980px){ #app{flex-direction:column} .panel{width:auto} .preview{width:190px;height:280px} }
+  .note{font-size:12px;color:var(--muted);margin-top:8px}
+  /* responsive */
+  @media (max-width:960px){
+    .panel{position:fixed;left:12px;right:12px;top:auto;bottom:18px;transform:none;width:auto;}
+    .title{font-size:20px}
+  }
 </style>
 </head>
 <body>
-  <div id="app">
-    <div class="scene">
-      <canvas id="bg"></canvas>
+  <div id="app" aria-label="Pick Your Power">
+    <canvas id="bg" width="960" height="540" style="width:100vw;height:100vh;position:absolute;left:0;top:0;"></canvas>
+
+    <div class="menu" id="menu">
+      <div class="title">PICK YOUR POWER!</div>
+      <div class="prompt">PRESS ANYWHERE TO CONTINUE</div>
     </div>
 
-    <aside class="panel" aria-label="Character customizer">
-      <h2>Character Customizer</h2>
+    <div class="flash" id="flash"></div>
 
-      <div class="preview-wrap">
-        <div class="preview" id="previewWrap" aria-hidden="false">
-          <canvas id="preview" width="96" height="144" style="image-rendering:pixelated;width:192px;height:288px;"></canvas>
-        </div>
+    <div class="panel" id="panel" role="dialog" aria-label="Character customizer">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-weight:800">Character Customizer</div>
+        <button id="closePanel" class="btn small">Close</button>
       </div>
 
-      <div class="row"><label style="width:96px">Body Color</label><input id="bodyColor" type="color" value="#ffd7c4"></div>
+      <div class="preview" aria-hidden="false">
+        <!-- Preview canvas is intentionally small (pixelated) -->
+        <canvas id="preview" width="64" height="96" style="image-rendering:pixelated;width:192px;height:288px;display:block;margin:0 auto;"></canvas>
+      </div>
 
-      <div class="row"><label style="width:96px">Start With</label>
+      <div class="row"><label style="width:100px">Start</label>
         <select id="startState">
-          <option value="pantsOnly">Pants only (default)</option>
+          <option value="pantsOnly">Pants only (bald)</option>
           <option value="fullDefault">Full default (clothed)</option>
         </select>
       </div>
 
+      <div class="row"><label style="width:100px">Skin</label><input id="skinColor" type="color" value="#ffd7c4"></div>
+
       <hr style="border:none;height:1px;background:rgba(255,255,255,0.02);margin:10px 0;">
 
-      <div style="font-weight:700;margin-bottom:8px">Hair</div>
-      <div class="row"><label>Style</label>
+      <div style="font-weight:700;margin-bottom:6px">Hair</div>
+      <div class="row"><label style="width:100px">Style</label>
         <select id="hairStyle">
           <option value="none">None (bald)</option>
           <option value="short">Short</option>
@@ -60,38 +91,38 @@
           <option value="ponytail">Ponytail</option>
         </select>
       </div>
-      <div class="row"><label>Color</label><input id="hairColor" type="color" value="#222222"></div>
+      <div class="row"><label style="width:100px">Color</label><input id="hairColor" type="color" value="#222222"></div>
 
       <hr style="border:none;height:1px;background:rgba(255,255,255,0.02);margin:10px 0;">
 
-      <div style="font-weight:700;margin-bottom:8px">Face</div>
-      <div class="row"><label>Eyes</label>
+      <div style="font-weight:700;margin-bottom:6px">Face</div>
+      <div class="row"><label style="width:100px">Eyes</label>
         <select id="eyesStyle">
           <option value="none">None (hidden)</option>
-          <option value="animeRound">Anime round</option>
-          <option value="animeSlit">Sharp</option>
-          <option value="pixel">Pixel eyes</option>
+          <option value="animeRound">Anime Round</option>
+          <option value="animeSharp">Sharp</option>
+          <option value="pixel">Pixel</option>
         </select>
       </div>
-      <div class="row"><label>Color</label><input id="eyesColor" type="color" value="#1b2b3a"></div>
+      <div class="row"><label style="width:100px">Eye Color</label><input id="eyesColor" type="color" value="#1b2b3a"></div>
 
       <hr style="border:none;height:1px;background:rgba(255,255,255,0.02);margin:10px 0;">
 
-      <div style="font-weight:700;margin-bottom:8px">Body / Outfit</div>
-      <div class="row"><label>Pants</label>
+      <div style="font-weight:700;margin-bottom:6px">Outfit</div>
+      <div class="row"><label style="width:100px">Pants</label>
         <select id="pantsStyle">
-          <option value="simple">Simple pants</option>
+          <option value="simple">Simple</option>
           <option value="shorts">Shorts</option>
           <option value="baggy">Baggy</option>
         </select>
       </div>
-      <div class="row"><label>Pants Color</label><input id="pantsColor" type="color" value="#2b4b7a"></div>
-      <div class="row"><label>Height</label><input id="heightRange" type="range" min="0.85" max="1.3" step="0.01" value="1"></div>
+      <div class="row"><label style="width:100px">Pants Color</label><input id="pantsColor" type="color" value="#2b4b7a"></div>
+      <div class="row"><label style="width:100px">Height</label><input id="height" type="range" min="0.85" max="1.25" step="0.01" value="1"></div>
 
       <hr style="border:none;height:1px;background:rgba(255,255,255,0.02);margin:10px 0;">
 
-      <div style="font-weight:700;margin-bottom:8px">Accessories</div>
-      <div class="row"><label>Accessory</label>
+      <div style="font-weight:700;margin-bottom:6px">Accessories</div>
+      <div class="row"><label style="width:100px">Accessory</label>
         <select id="accessory">
           <option value="none">None</option>
           <option value="glasses">Glasses</option>
@@ -101,208 +132,132 @@
         </select>
       </div>
 
-      <div style="display:flex;gap:8px;margin-top:12px;">
+      <div style="display:flex;gap:8px;margin-top:10px;">
         <button id="randomize" class="btn small">Randomize</button>
         <button id="reset" class="btn small" style="background:#203040">Reset</button>
-        <button id="exportBtn" class="btn small" style="margin-left:auto">Export</button>
+        <button id="export" class="btn small" style="margin-left:auto">Export</button>
       </div>
 
-      <div class="note">Character starts bald with only pants when "Pants only" is selected.</div>
-    </aside>
+      <div class="note">Preview is 2D pixel anime. Choosing "Pants only" starts the character bald with only pants displayed.</div>
+    </div>
   </div>
 
 <script>
-/* Single-file 2D pixel anime customizer
-   - Preview canvas uses small pixel grid (96x144) scaled up for crisp pixel look.
-   - Default startState "pantsOnly" => character begins bald with only pants shown.
-   - Controls: body color, hair style & color, eyes style & color, pants style/color, height, accessory.
-   - Live preview updates on change.
-   - Simple star/space background retained but subtle; not required.
+/* Single-file: pixel anime preview, menu, flash to panel.
+   - preview canvas is tiny 64x96 (true pixel art). CSS scales it up.
+   - menu visible initially: Pick Your Power! + press anywhere.
+   - pressing hides menu with bright flash then shows customizer.
+   - initial state "pantsOnly" draws pants + bald head.
 */
 
-/* ---------------- preview drawing setup ---------------- */
+/* ---------- Canvas background (subtle animated starfield) ---------- */
+const bg = document.getElementById('bg');
+const bgCtx = bg.getContext('2d');
+let lastFitW = 0, lastFitH = 0;
+function fitBg(){
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  bg.width = Math.max(640, Math.round(w));
+  bg.height = Math.max(360, Math.round(h));
+  bg.style.width = '100vw';
+  bg.style.height = '100vh';
+  bgCtx.imageSmoothingEnabled = true;
+  lastFitW = bg.width; lastFitH = bg.height;
+}
+window.addEventListener('resize', fitBg);
+fitBg();
+
+/* subtle moving background gradient + stars */
+const stars = Array.from({length:120}, ()=>({ x: Math.random(), y: Math.random(), r: Math.random()*1.6+0.3, phase: Math.random()*Math.PI*2 }));
+let t0 = performance.now();
+function bgLoop(now){
+  const t = (now - t0)/1000;
+  const w = bg.width, h = bg.height;
+  // gradient
+  const g = bgCtx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0,'#020218'); g.addColorStop(1,'#000814');
+  bgCtx.fillStyle = g; bgCtx.fillRect(0,0,w,h);
+  // nebula glow
+  const gx = w*0.28 + Math.sin(t*0.4)*80;
+  const gy = h*0.3 + Math.cos(t*0.3)*48;
+  const grad = bgCtx.createRadialGradient(gx,gy,0,gx,gy,Math.min(w,h)*0.5);
+  grad.addColorStop(0,'rgba(120,160,255,0.06)'); grad.addColorStop(1,'rgba(0,0,0,0)');
+  bgCtx.fillStyle = grad; bgCtx.fillRect(0,0,w,h);
+  // stars
+  for(const s of stars){
+    const x = Math.floor(s.x * w + Math.sin(t*0.8 + s.phase)*6);
+    const y = Math.floor(s.y * h + Math.cos(t*0.6 + s.phase)*6);
+    bgCtx.fillStyle = 'rgba(255,255,255,0.85)';
+    bgCtx.fillRect(x, y, Math.max(1, Math.round(s.r)), Math.max(1, Math.round(s.r)));
+  }
+  requestAnimationFrame(bgLoop);
+}
+requestAnimationFrame(bgLoop);
+
+/* ---------- Menu -> Flash -> Panel ---------- */
+const menu = document.getElementById('menu');
+const flash = document.getElementById('flash');
+const panel = document.getElementById('panel');
+
+function openCustomizerWithFlash(){
+  // flash white quickly
+  flash.style.transition = 'none';
+  flash.style.opacity = '1';
+  requestAnimationFrame(()=> {
+    flash.style.transition = 'opacity 480ms cubic-bezier(.2,.9,0,1)';
+    flash.style.opacity = '0';
+  });
+  setTimeout(()=> {
+    menu.style.display = 'none';
+    panel.classList.add('visible');
+  }, 160);
+}
+function onStart(){
+  openCustomizerWithFlash();
+  window.removeEventListener('pointerdown', onStart);
+}
+window.addEventListener('pointerdown', onStart, {passive:true});
+window.addEventListener('touchstart', onStart, {passive:true});
+
+/* ---------- Preview (64x96 pixel canvas) ---------- */
 const preview = document.getElementById('preview');
-const p = preview.getContext('2d');
-preview.style.background = 'transparent';
-p.imageSmoothingEnabled = false;
-
-const BG_CANVAS = document.getElementById('bg');
-const bg = BG_CANVAS.getContext('2d', {alpha:true});
-let DPR = Math.min(window.devicePixelRatio || 1, 2);
-
-/* size helper: preview internal pixels 96x144 (4:6) scaled for display via CSS */
-const PRE_W = preview.width = 96;
-const PRE_H = preview.height = 144;
+const pctx = preview.getContext('2d');
+pctx.imageSmoothingEnabled = false;
+const PW = preview.width; const PH = preview.height;
 
 /* UI elements */
-const bodyColorEl = document.getElementById('bodyColor');
 const startStateEl = document.getElementById('startState');
+const skinColorEl = document.getElementById('skinColor');
 const hairStyleEl = document.getElementById('hairStyle');
 const hairColorEl = document.getElementById('hairColor');
 const eyesStyleEl = document.getElementById('eyesStyle');
 const eyesColorEl = document.getElementById('eyesColor');
 const pantsStyleEl = document.getElementById('pantsStyle');
 const pantsColorEl = document.getElementById('pantsColor');
-const heightRangeEl = document.getElementById('heightRange');
+const heightEl = document.getElementById('height');
 const accessoryEl = document.getElementById('accessory');
 const randomizeBtn = document.getElementById('randomize');
 const resetBtn = document.getElementById('reset');
-const exportBtn = document.getElementById('exportBtn');
+const exportBtn = document.getElementById('export');
+const closePanel = document.getElementById('closePanel');
 
-/* character state: default is bald with only pants (pantsOnly) */
-const char = {
-  startState: 'pantsOnly', // or fullDefault
-  bodyColor: bodyColorEl.value,
-  hairStyle: 'none',
+/* character model state */
+const model = {
+  startState: startStateEl.value,
+  skin: skinColorEl.value,
+  hairStyle: hairStyleEl.value,
   hairColor: hairColorEl.value,
-  eyesStyle: 'none',
+  eyesStyle: eyesStyleEl.value,
   eyesColor: eyesColorEl.value,
   pantsStyle: pantsStyleEl.value,
   pantsColor: pantsColorEl.value,
-  height: parseFloat(heightRangeEl.value),
-  accessory: 'none',
-  scale: 2 // preview pixel scale (visual only)
+  height: parseFloat(heightEl.value),
+  accessory: accessoryEl.value
 };
 
-/* helpers for drawing pixel art shapes */
-function clearPreview(){
-  p.clearRect(0,0,PRE_W,PRE_H);
-  // fill faint background for contrast
-  p.fillStyle = '#061428';
-  p.fillRect(0,0,PRE_W,PRE_H);
-}
-
-/* small pixel-round rectangle */
-function fillRect(ix,iy,w,h,color){
-  p.fillStyle = color;
-  p.fillRect(ix,iy,w,h);
-}
-
-/* draw 2D pixel anime character in blocky/pixel-art style.
-   Layout coordinates are in preview pixel space (96x144).
-*/
-function drawCharacter(){
-  clearPreview();
-  // center baseline
-  const cx = Math.floor(PRE_W/2);
-  const floorY = PRE_H - 16;
-  const heightScale = char.height;
-
-  // basic proportions (pixel units)
-  const bodyH = Math.round(40 * heightScale);
-  const bodyW = Math.round(22 * heightScale);
-  const headW = Math.round(24 * heightScale);
-  const headH = Math.round(20 * heightScale);
-
-  // draw shadow under feet
-  p.fillStyle = 'rgba(0,0,0,0.35)';
-  p.fillRect(cx-18, floorY-4, 36, 6);
-
-  // pants only default: draw pants and legs
-  // pants block
-  const pantsTopY = floorY - Math.round(8 + bodyH*0.12);
-  fillRect(cx - Math.round(bodyW/2), pantsTopY, bodyW, Math.round(bodyH*0.36), char.pantsColor);
-
-  // legs below pants
-  fillRect(cx - Math.round(bodyW/2), pantsTopY + Math.round(bodyH*0.36), Math.round(bodyW*0.4), Math.round(bodyH*0.36), shade(char.pantsColor, -18));
-  fillRect(cx + Math.round(bodyW*0.02), pantsTopY + Math.round(bodyH*0.36), Math.round(bodyW*0.4), Math.round(bodyH*0.36), shade(char.pantsColor, -18));
-
-  // torso (only draw if startState != pantsOnly OR if user later chooses a torso by CSS—initially pantsOnly hides torso)
-  if(char.startState !== 'pantsOnly'){
-    fillRect(cx - Math.round(bodyW/2), pantsTopY - Math.round(bodyH*0.76), bodyW, Math.round(bodyH*0.76), char.bodyColor);
-  }
-
-  // head (always draw head; if hairStyle is none show bald head)
-  const headY = pantsTopY - Math.round(bodyH*0.76) - headH - 2;
-  fillRect(cx - Math.round(headW/2), headY, headW, headH, char.bodyColor);
-
-  // ears (small)
-  fillRect(cx - Math.round(headW/2) - 2, headY + 6, 2, 4, shade(char.bodyColor, -12));
-  fillRect(cx + Math.round(headW/2), headY + 6, 2, 4, shade(char.bodyColor, -12));
-
-  // hair (only if hairStyle != 'none')
-  if(char.hairStyle !== 'none'){
-    p.fillStyle = char.hairColor;
-    if(char.hairStyle === 'short'){
-      fillRect(cx - Math.round(headW/2), headY - 2, headW, 8, char.hairColor); // fringe
-    } else if(char.hairStyle === 'spiky'){
-      // spikes: three triangles approximated as blocks
-      fillRect(cx - Math.round(headW/2), headY - 2, 8, 10, char.hairColor);
-      fillRect(cx - 2, headY - 8, 8, 12, char.hairColor);
-      fillRect(cx + Math.round(headW/2)-6, headY - 2, 8, 10, char.hairColor);
-    } else if(char.hairStyle === 'long'){
-      fillRect(cx - Math.round(headW/2), headY - 2, headW, 8, char.hairColor); // top
-      // long back
-      fillRect(cx - Math.round(headW/2)+2, headY + headH - 2, headW - 4, 26 * heightScale, char.hairColor);
-    } else if(char.hairStyle === 'ponytail' || char.hairStyle === 'ponytail'){
-      fillRect(cx - Math.round(headW/2), headY - 2, headW, 8, char.hairColor); // top
-      // pony tail to the side
-      fillRect(cx + Math.round(headW/2)-6, headY + 6, 10, 22 * heightScale, char.hairColor);
-    }
-  } else {
-    // bald highlight: small shine band
-    fillRect(cx - 6, headY + 4, 12, 3, 'rgba(255,255,255,0.15)');
-  }
-
-  // eyes (only if eyesStyle != 'none')
-  if(char.eyesStyle !== 'none'){
-    p.fillStyle = char.eyesColor;
-    if(char.eyesStyle === 'animeRound'){
-      // two bigger eye blocks with light reflection
-      fillRect(cx - 9, headY + 6, 6, 6, char.eyesColor);
-      fillRect(cx + 3, headY + 6, 6, 6, char.eyesColor);
-      // tiny white spark
-      fillRect(cx - 7, headY + 7, 2, 2, '#fff');
-      fillRect(cx + 5, headY + 7, 2, 2, '#fff');
-    } else if(char.eyesStyle === 'animeSlit'){
-      fillRect(cx - 11, headY + 9, 12, 2, char.eyesColor);
-      fillRect(cx + 1, headY + 9, 12, 2, char.eyesColor);
-    } else if(char.eyesStyle === 'pixel'){
-      fillRect(cx - 12, headY + 6, 4, 4, char.eyesColor);
-      fillRect(cx - 8, headY + 8, 4, 4, char.eyesColor);
-      fillRect(cx + 8, headY + 6, 4, 4, char.eyesColor);
-      fillRect(cx + 4, headY + 8, 4, 4, char.eyesColor);
-    }
-  }
-
-  // mouth (small)
-  fillRect(cx - 3, headY + headH - 6, 6, 2, shade('#000000', 40));
-
-  // accessory
-  drawAccessoryPreview(cx, headY, headW, headH, char.accessory);
-
-  // outline for readability (thin)
-  p.strokeStyle = 'rgba(0,0,0,0.25)';
-  p.lineWidth = 1;
-  // outline head
-  p.strokeRect(cx - Math.round(headW/2), headY, headW, headH);
-  // outline pants
-  p.strokeRect(cx - Math.round(bodyW/2), pantsTopY, bodyW, Math.round(bodyH*0.36));
-
-  // replicate small pixel grid aesthetic by ensuring integer coords (done)
-}
-
-/* accessory rendering for preview */
-function drawAccessoryPreview(cx, headY, headW, headH, acc){
-  if(acc === 'glasses'){
-    p.strokeStyle = '#000';
-    p.lineWidth = 1.2;
-    p.strokeRect(cx - 11, headY + 6, 8, 6);
-    p.strokeRect(cx + 3, headY + 6, 8, 6);
-    p.beginPath(); p.moveTo(cx - 3, headY + 9); p.lineTo(cx + 3, headY + 9); p.stroke();
-  } else if(acc === 'mask'){
-    p.fillStyle = '#222';
-    p.fillRect(cx - 12, headY + 12, 24, 6);
-  } else if(acc === 'scarf'){
-    p.fillStyle = '#b354ff';
-    p.fillRect(cx - 18, headY + headH + 2, 36, 6);
-  } else if(acc === 'helmet'){
-    p.fillStyle = '#444';
-    p.fillRect(cx - Math.round(headW/2), headY - 2, headW, 10);
-  }
-}
-
-/* simple shade utility */
+/* utility helpers */
+function lerp(a,b,t){ return a + (b-a) * t; }
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
 function shade(hex, pct){
   const f = hex.replace('#','');
   const R = parseInt(f.substring(0,2),16);
@@ -315,158 +270,189 @@ function shade(hex, pct){
   return `rgb(${newR},${newG},${newB})`;
 }
 
-/* ---------------- UI interactions ---------------- */
-function applyUIToState(){
-  char.bodyColor = bodyColorEl.value;
-  char.startState = startStateEl.value;
-  // if startState is pantsOnly, force hair & eyes none until user changes
-  if(char.startState === 'pantsOnly'){
-    char.hairStyle = 'none';
-    hairStyleEl.value = 'none';
-    char.eyesStyle = 'none';
-    eyesStyleEl.value = 'none';
-  } else {
-    char.hairStyle = hairStyleEl.value;
-    char.eyesStyle = eyesStyleEl.value;
+/* draw pixel anime character (simple, clean, 2D anime style) */
+function drawPreview(){
+  // clear
+  pctx.clearRect(0,0,PW,PH);
+  // backdrop
+  pctx.fillStyle = '#071428';
+  pctx.fillRect(0,0,PW,PH);
+
+  const cx = Math.floor(PW/2);
+  const floorY = PH - 12;
+  const heightScale = model.height;
+
+  // proportions in pixels
+  const bodyH = Math.max(28, Math.round(36 * heightScale));
+  const bodyW = Math.max(14, Math.round(20 * heightScale));
+  const headW = Math.round(20 * heightScale);
+  const headH = Math.round(16 * heightScale);
+
+  // shadow
+  pctx.fillStyle = 'rgba(0,0,0,0.35)';
+  pctx.fillRect(cx-12, floorY-4, 24, 5);
+
+  // pants (always present)
+  const pantsTop = floorY - 8 - Math.round(bodyH*0.36);
+  pctx.fillStyle = model.pantsColor;
+  pctx.fillRect(cx - Math.round(bodyW/2), pantsTop, bodyW, Math.round(bodyH*0.36));
+
+  // legs
+  pctx.fillStyle = shade(model.pantsColor, -18);
+  pctx.fillRect(cx - Math.round(bodyW/2), pantsTop + Math.round(bodyH*0.36), Math.round(bodyW*0.42), Math.round(bodyH*0.44));
+  pctx.fillRect(cx + Math.round(bodyW*0.02), pantsTop + Math.round(bodyH*0.36), Math.round(bodyW*0.42), Math.round(bodyH*0.44));
+
+  // torso only if startState != 'pantsOnly' (initial mode)
+  if(model.startState !== 'pantsOnly'){
+    pctx.fillStyle = model.skin;
+    pctx.fillRect(cx - Math.round(bodyW/2), pantsTop - Math.round(bodyH*0.76), bodyW, Math.round(bodyH*0.76));
   }
-  char.hairColor = hairColorEl.value;
-  char.eyesColor = eyesColorEl.value;
-  char.pantsStyle = pantsStyleEl.value;
-  char.pantsColor = pantsColorEl.value;
-  char.height = parseFloat(heightRangeEl.value);
-  char.accessory = accessoryEl.value;
-  refreshPreview();
+
+  // head (always drawn)
+  const headY = pantsTop - Math.round(bodyH*0.76) - headH - 2;
+  pctx.fillStyle = model.skin;
+  pctx.fillRect(cx - Math.round(headW/2), headY, headW, headH);
+
+  // bald highlight if no hair
+  if(model.hairStyle === 'none' || model.startState === 'pantsOnly'){
+    pctx.fillStyle = 'rgba(255,255,255,0.12)';
+    pctx.fillRect(cx - 4, headY + 3, 8, 3);
+  }
+
+  // hair (pixel anime shapes)
+  if(model.hairStyle !== 'none' && model.startState !== 'pantsOnly'){
+    pctx.fillStyle = model.hairColor;
+    if(model.hairStyle === 'short'){
+      pctx.fillRect(cx - Math.round(headW/2), headY - 2, headW, 7);
+    } else if(model.hairStyle === 'spiky'){
+      pctx.fillRect(cx - 9, headY - 6, 6, 8);
+      pctx.fillRect(cx - 1, headY - 10, 6, 10);
+      pctx.fillRect(cx + 7, headY - 6, 6, 8);
+    } else if(model.hairStyle === 'long'){
+      pctx.fillRect(cx - Math.round(headW/2), headY - 2, headW, 8);
+      pctx.fillRect(cx - 8, headY + headH - 2, 16, 22 * heightScale);
+    } else if(model.hairStyle === 'ponytail'){
+      pctx.fillRect(cx - Math.round(headW/2), headY - 2, headW, 8);
+      pctx.fillRect(cx + Math.round(headW/2)-4, headY + 6, 6, 18);
+    }
+  }
+
+  // eyes (if any)
+  if(model.eyesStyle !== 'none' && model.startState !== 'pantsOnly'){
+    pctx.fillStyle = model.eyesColor;
+    if(model.eyesStyle === 'animeRound'){
+      pctx.fillRect(cx - 6, headY + 4, 4, 4);
+      pctx.fillRect(cx + 2, headY + 4, 4, 4);
+      pctx.fillStyle = '#fff'; pctx.fillRect(cx - 5, headY + 5, 1, 1); pctx.fillRect(cx + 3, headY + 5, 1, 1);
+    } else if(model.eyesStyle === 'animeSharp'){
+      pctx.fillRect(cx - 7, headY + 6, 10, 2);
+      pctx.fillRect(cx + 0, headY + 6, 10, 2);
+    } else if(model.eyesStyle === 'pixel'){
+      pctx.fillRect(cx - 8, headY + 3, 3, 3);
+      pctx.fillRect(cx - 4, headY + 5, 3, 3);
+      pctx.fillRect(cx + 5, headY + 3, 3, 3);
+      pctx.fillRect(cx + 1, headY + 5, 3, 3);
+    }
+  }
+
+  // mouth
+  pctx.fillStyle = 'rgba(0,0,0,0.6)';
+  pctx.fillRect(cx - 3, headY + headH - 4, 6, 1);
+
+  // accessory
+  drawAccessoryPreview(cx, headY, headW, headH, model.accessory);
+
+  // small outline (crisp)
+  pctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  pctx.strokeRect(cx - Math.round(headW/2), headY, headW, headH);
 }
 
-/* event listeners */
-bodyColorEl.addEventListener('input', ()=>{ char.bodyColor = bodyColorEl.value; refreshPreview(); });
-startStateEl.addEventListener('change', ()=>{
-  char.startState = startStateEl.value;
-  if(char.startState === 'pantsOnly'){
-    // force bald & hide torso
-    hairStyleEl.value = 'none'; hairColorEl.value = '#222222';
-    eyesStyleEl.value = 'none'; eyesColorEl.value = '#111111';
-    hairStyleEl.dispatchEvent(new Event('change'));
-    eyesStyleEl.dispatchEvent(new Event('change'));
+/* accessory preview for small pixel art */
+function drawAccessoryPreview(cx, headY, headW, headH, acc){
+  if(acc === 'glasses'){
+    pctx.strokeStyle = '#000'; pctx.lineWidth = 1;
+    pctx.strokeRect(cx - 9, headY + 4, 5, 4);
+    pctx.strokeRect(cx + 4, headY + 4, 5, 4);
+    pctx.beginPath(); pctx.moveTo(cx - 4, headY + 6); pctx.lineTo(cx + 4, headY + 6); pctx.stroke();
+  } else if(acc === 'mask'){
+    pctx.fillStyle = '#222'; pctx.fillRect(cx - 10, headY + 10, 20, 4);
+  } else if(acc === 'scarf'){
+    pctx.fillStyle = '#b354ff'; pctx.fillRect(cx - 14, headY + headH + 2, 28, 5);
+  } else if(acc === 'helmet'){
+    pctx.fillStyle = '#444'; pctx.fillRect(cx - Math.round(headW/2), headY - 2, headW, 8);
   }
-  refreshPreview();
-});
-hairStyleEl.addEventListener('change', ()=>{ char.hairStyle = hairStyleEl.value; refreshPreview(); });
-hairColorEl.addEventListener('input', ()=>{ char.hairColor = hairColorEl.value; refreshPreview(); });
-eyesStyleEl.addEventListener('change', ()=>{ char.eyesStyle = eyesStyleEl.value; refreshPreview(); });
-eyesColorEl.addEventListener('input', ()=>{ char.eyesColor = eyesColorEl.value; refreshPreview(); });
-pantsStyleEl.addEventListener('change', ()=>{ char.pantsStyle = pantsStyleEl.value; refreshPreview(); });
-pantsColorEl.addEventListener('input', ()=>{ char.pantsColor = pantsColorEl.value; refreshPreview(); });
-heightRangeEl.addEventListener('input', ()=>{ char.height = parseFloat(heightRangeEl.value); refreshPreview(); });
-accessoryEl.addEventListener('change', ()=>{ char.accessory = accessoryEl.value; refreshPreview(); });
+}
+
+/* ---------- UI wiring ---------- */
+function pullUI(){
+  model.startState = startStateEl.value;
+  model.skin = skinColorEl.value;
+  model.hairStyle = hairStyleEl.value;
+  model.hairColor = hairColorEl.value;
+  model.eyesStyle = eyesStyleEl.value;
+  model.eyesColor = eyesColorEl.value;
+  model.pantsStyle = pantsStyleEl.value;
+  model.pantsColor = pantsColorEl.value;
+  model.height = parseFloat(heightEl.value);
+  model.accessory = accessoryEl.value;
+
+  // if startState is pantsOnly, ensure hair & eyes hidden initially
+  if(model.startState === 'pantsOnly'){
+    model.hairStyle = 'none';
+    hairStyleEl.value = 'none';
+    model.eyesStyle = 'none';
+    eyesStyleEl.value = 'none';
+    eyesStyleEl.dispatchEvent(new Event('change'));
+    hairStyleEl.dispatchEvent(new Event('change'));
+  }
+  drawPreview();
+}
+
+[startStateEl, skinColorEl, hairStyleEl, hairColorEl, eyesStyleEl, eyesColorEl, pantsStyleEl, pantsColorEl, heightEl, accessoryEl]
+.forEach(el => el.addEventListener('input', pullUI));
+[startStateEl, hairStyleEl, eyesStyleEl, pantsStyleEl, accessoryEl].forEach(el => el.addEventListener('change', pullUI));
 
 randomizeBtn.addEventListener('click', ()=>{
-  const hairOptions = ['none','short','spiky','long','ponytail'];
-  const eyesOptions = ['none','animeRound','animeSlit','pixel'];
-  hairStyleEl.value = hairOptions[Math.floor(Math.random() * hairOptions.length)];
-  eyesStyleEl.value = eyesOptions[Math.floor(Math.random() * eyesOptions.length)];
-  hairColorEl.value = '#' + Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
-  eyesColorEl.value = '#' + Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
-  pantsColorEl.value = '#' + Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
-  heightRangeEl.value = (0.85 + Math.random()*0.45).toFixed(2);
+  hairStyleEl.value = ['none','short','spiky','long','ponytail'][Math.floor(Math.random()*5)];
+  hairColorEl.value = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
+  eyesStyleEl.value = ['none','animeRound','animeSharp','pixel'][Math.floor(Math.random()*4)];
+  eyesColorEl.value = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
+  pantsColorEl.value = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0');
+  heightEl.value = (0.85 + Math.random()*0.4).toFixed(2);
   accessoryEl.value = ['none','glasses','scarf','mask','helmet'][Math.floor(Math.random()*5)];
-  // if startState is pantsOnly, randomly keep hair none often
-  if(startStateEl.value === 'pantsOnly' && Math.random() < 0.75) hairStyleEl.value = 'none';
-  applyUIToState();
+  pullUI();
 });
-
 resetBtn.addEventListener('click', ()=>{
-  bodyColorEl.value = '#ffd7c4';
+  startStateEl.value = 'pantsOnly';
+  skinColorEl.value = '#ffd7c4';
   hairStyleEl.value = 'none';
   hairColorEl.value = '#222222';
   eyesStyleEl.value = 'none';
-  eyesColorEl.value = '#111111';
+  eyesColorEl.value = '#1b2b3a';
   pantsStyleEl.value = 'simple';
   pantsColorEl.value = '#2b4b7a';
-  heightRangeEl.value = 1;
+  heightEl.value = 1;
   accessoryEl.value = 'none';
-  startStateEl.value = 'pantsOnly';
-  applyUIToState();
+  pullUI();
 });
-
 exportBtn.addEventListener('click', ()=>{
-  // export preview as PNG
-  const data = preview.toDataURL('image/png');
-  const a = document.createElement('a'); a.href = data; a.download = 'character.png'; a.click();
+  const url = preview.toDataURL('image/png');
+  const a = document.createElement('a'); a.href = url; a.download = 'pixel-character.png'; a.click();
 });
+closePanel.addEventListener('click', ()=> panel.classList.remove('visible'));
 
-/* refreshPreview reads char values and draws */
-function refreshPreview(){
-  // ensure char uses UI values
-  char.bodyColor = bodyColorEl.value;
-  char.hairColor = hairColorEl.value;
-  char.eyesColor = eyesColorEl.value;
-  char.pantsColor = pantsColorEl.value;
-  char.pantsStyle = pantsStyleEl.value;
-  char.height = parseFloat(heightRangeEl.value);
-  char.accessory = accessoryEl.value;
-  char.hairStyle = hairStyleEl.value;
-  char.eyesStyle = eyesStyleEl.value;
-  char.startState = startStateEl.value;
-
-  // paint elements' colors into drawing logic
-  // use char.bodyColor as head/skin
-  // apply in drawing by temporarily swapping colors
-  // store and set used colors
-  const prev = { body: char.bodyColor, hair: char.hairColor, eyes: char.eyesColor, pants: char.pantsColor };
-  // draw with these colors
-  // ensure preview context uses integer coordinates
-  drawCharacter();
-}
-
-/* initial state: pants only, bald */
+/* initial state: ensure pants-only start */
 resetBtn.click();
 
-/* ---------------- small background starfield (subtle) ---------------- */
-function fitBg(){
-  const w = Math.max(640, Math.round(window.innerWidth * 0.9));
-  const h = Math.max(360, Math.round(window.innerHeight * 0.9));
-  BG_CANVAS.width = w * DPR; BG_CANVAS.height = h * DPR;
-  BG_CANVAS.style.width = '100%'; BG_CANVAS.style.height = '100%';
-  bg.setTransform(DPR,0,0,DPR,0,0);
+/* expose preview update */
+window._drawPreview = drawPreview;
+window._model = model;
+
+/* keep preview scalable crisp when CSS scales */
+function ensurePreviewSharp(){
+  // preview canvas is 64x96; CSS scales it. No extra handling needed as rendering is in integer pixels.
 }
-window.addEventListener('resize', fitBg);
-fitBg();
-
-// subtle animated star dots behind preview (no parallax heavy)
-const starDots = Array.from({length:80}, ()=>({ x: Math.random(), y: Math.random(), r: Math.random()*1.8 + 0.3, phase: Math.random()*Math.PI*2 }));
-let lastT = performance.now();
-function bgLoop(now){
-  const dt = Math.min((now - lastT)/1000, 0.04);
-  lastT = now;
-  // fade background gradient
-  bg.clearRect(0,0,BG_CANVAS.width/DPR, BG_CANVAS.height/DPR);
-  const w = BG_CANVAS.width/DPR, h = BG_CANVAS.height/DPR;
-  const g = bg.createLinearGradient(0,0,0,h);
-  g.addColorStop(0,'#051028'); g.addColorStop(1,'#020218'); bg.fillStyle = g; bg.fillRect(0,0,w,h);
-
-  // moving nebula glow under center-left
-  const gx = w*0.28 + Math.sin(now*0.0007)*40;
-  const gy = h*0.32 + Math.cos(now*0.0009)*24;
-  const grad = bg.createRadialGradient(gx,gy,0,gx,gy,Math.min(w,h)*0.5);
-  grad.addColorStop(0,'rgba(140,180,255,0.06)'); grad.addColorStop(1,'rgba(0,0,0,0)');
-  bg.fillStyle = grad; bg.fillRect(gx - w, gy - h, w*2, h*2);
-
-  // stars
-  for(const s of starDots){
-    const x = s.x * w + Math.sin(now*0.0012 + s.phase) * 6;
-    const y = s.y * h + Math.cos(now*0.0016 + s.phase) * 4;
-    bg.fillStyle = 'rgba(255,255,255,0.85)';
-    bg.beginPath(); bg.ellipse(x,y,s.r,s.r,0,0,Math.PI*2); bg.fill();
-  }
-
-  requestAnimationFrame(bgLoop);
-}
-requestAnimationFrame(bgLoop);
-
-/* expose for debug */
-window._char = char;
-window._refresh = refreshPreview;
+ensurePreviewSharp();
 </script>
 </body>
 </html>
