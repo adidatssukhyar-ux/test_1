@@ -56,6 +56,7 @@
   <div id="tooltip"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js"></script>
   <script>
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 3000);
@@ -64,6 +65,15 @@
     const renderer = new THREE.WebGLRenderer({antialias:true});
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
+
+    // OrbitControls
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.enablePan = true;
+    controls.enableZoom = true;
+    controls.target.set(0,0,0);
+    controls.update();
 
     // Starfield
     const starGeo = new THREE.BufferGeometry();
@@ -140,7 +150,8 @@
       tooltip.dataset.mouseX = event.clientX;
       tooltip.dataset.mouseY = event.clientY;
     });
-  function animate(){
+
+    function animate(){
       requestAnimationFrame(animate);
       stars.rotation.y += 0.0005;
 
@@ -199,11 +210,14 @@
         }
       }
 
+      // update orbit controls
+      controls.update();
+
       renderer.render(scene,camera);
     }
     animate();
 
-        // Buttons
+    // Buttons
     document.getElementById('exploreBtn').addEventListener('click', ()=>{
       document.getElementById('menu').style.display = 'none';
       driftingOut = true;
