@@ -1,1 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Power Test Arena</title>
+<style>
+  :root{
+    --bg:#0f1724; --card:#0b1220; --accent:#7c3aed; --muted:#94a3b8; --hp:#ef4444;
+  }
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;}
+  .app{display:flex;gap:20px;padding:20px;background:linear-gradient(180deg,#071029 0%, #081228 60%);min-height:100vh;box-sizing:border-box;}
+  .sidebar{width:320px;background:linear-gradient(180deg,var(--card),#071428);padding:18px;border-radius:12px;color:white;box-shadow:0 6px 30px rgba(2,6,23,.6);}
+  h3{margin:6px 0 12px 0;font-size:18px;}
+  .row{display:flex;gap:8px;flex-wrap:wrap;}
+  .card{background:rgba(255,255,255,0.03);padding:12px;border-radius:8px;cursor:pointer;flex:1;min-width:120px;}
+  .card.selected{outline:2px solid var(--accent);box-shadow:0 6px 18px rgba(124,58,237,0.16);}
+  .muted{color:var(--muted);font-size:13px;}
+  .controls{margin-top:12px;font-size:13px;}
+  .arena-wrap{flex:1;display:flex;flex-direction:column;gap:8px;}
+  canvas{background:linear-gradient(180deg,#072034,#041022);width:100%;height:calc(100vh - 120px);border-radius:12px;display:block;box-shadow:0 10px 40px rgba(2,6,23,.6);}
+  .toolbar{display:flex;gap:8px;align-items:center;}
+  button{background:var(--accent);border:none;color:white;padding:8px 12px;border-radius:8px;cursor:pointer;}
+  .small{background:#123; padding:6px 8px;border-radius:6px;border:1px solid rgba(255,255,255,0.03);}
+  .hpbar{height:8px;background:#223;border-radius:8px;overflow:hidden;width:120px;border:1px solid rgba(255,255,255,0.04);}
+  .hpbar > i{display:block;height:100%;background:linear-gradient(90deg,#ef4444,#f97316);}
+  .footer-muted{color:var(--muted);font-size:13px;margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <h3>Choose Character</h3>
+    <div id="chars" class="row"></div>
+    <h3>Choose Power</h3>
+    <div id="powers" class="row"></div>
+    <div class="controls">
+      <div class="muted">Movement: WASD / Arrows • Aim: Mouse • Fire: Click • Use: Space • Reset: R</div>
+      <div style="margin-top:10px;">
+        <button id="spawnMore">Spawn +2 Dummies</button>
+        <button id="resetBtn" style="background:#1f2937;margin-left:8px;">Reset</button>
+      </div>
+    </div>
+    <div class="footer-muted">Build by you — expand powers, add sprites, tune physics.</div>
+  </aside>
+
+  <section class="arena-wrap">
+    <div class="toolbar">
+      <div class="hpbar"><i id="playerHp" style="width:100%"></i></div>
+      <div style="color:white;margin-left:8px;" id="statusText">Ready</div>
+      <div style="flex:1"></div>
+      <button id="downloadBtn" class="small">Save Config</button>
+    </div>
+    <canvas id="arena"></canvas>
+  </section>
+</div>
+
+<script>
+// ----- CONFIG / ASSETS (simple shapes, replaceable with sprites) -----
+const CHARACTERS = [
+  {id:'hero_red', name:'Red', color:'#ff6b6b'},
+  {id:'hero_blue', name:'Blue', color:'#60a5fa'},
+  {id:'hero_green', name:'Green', color:'#34d399'}
+];
+const POWERS = [
+  {id:'fireball', name:'Fireball', type:'projectile', damage:18, speed:480, radius:8, cooldown:500},
+  {id:'shock', name:'Shockwave', type:'aoe', damage:10, radius:90, cooldown:1500, duration:120},
+  {id:'dash', name:'Dash', type:'dash', damage:6, speed:700, cooldown:800, duration:160}
+];
+
+// ----- STATE -----
+const state = {
+  player: {x:300,y:200,w:28,h:36, color:'#ff6b6b', facing:0, hp:100},
+  currentChar: CHARACTERS[0].id,
+  currentPower: POWERS[0].id,
+  dummies: [],
+  projectiles: [],
+  keys: {},
+  mouse: {x:0,y:0,down:false},
+  lastTime: performance.now(),
+  width: 1000,
+  height: 600,
+  paused: false,
+};
+
+// ----- DOM wiring -----
+const charsEl = document.getElementById('chars');
+const powersEl = document.getElementById('powers');
+const canvas = document.getElementById('arena');
+const ctx = canvas.getContext('2d');
+const statusText = document.getElementById('statusText');
+const playerHpEl = document.getElementById('playerHp');
+const spawnMoreBtn = document.getElementById('spawnMore');
+const resetBtn = document.getElementById('resetBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+
+function initUI(){
+  CHARACTERS.forEach(c=>{
+    const el = document.createElement('div');
+    el.className='card' + (c.id===state.currentChar?' selected':'');
+    el.innerHTML = `<strong>${c.name}</strong><div class="muted" style="margin-top:6px">Color: ${c.color}</div>`;
+    el.onclick = ()=>{
+      state.currentChar = c.id;
+      state.player.color = c.color;
+      refreshCards();
+    };
+    charsEl.appendChild(el);
+  });
+  POWERS.forEach(p=>{
+    const el = document.createElement('div');
+    el.className='card' + (p.id===state.currentPower?' selected':'');
+    el.innerHTML = `<strong>${p.name}</strong><div class="muted" style="margin-top:6px">${p.type}</div>`;
+    el.onclick = ()=>{
+      state.currentPower = p.id;
+      refreshCards();
+    };
+    powersEl.appendChild(el);
+  });
+}
+function refreshCards(){
+  Array.from(charsEl.children).forEach((el,i)=> el.classList.toggle('selected', CHARACTERS[i].id===state.currentChar));
+  Array.from(powersEl.children).forEach((el,i)=> el.classList.toggle('selected', POWERS[i].id===state.currentPower));
+}
+spawnMoreBtn.onclick = ()=> { spawnDummies(2); };
+resetBtn.onclick = resetArena;
+downloadBtn.onclick = ()=> {
+  const cfg = {char: state.currentChar, power: state.currentPower};
+  const txt = JSON.stringify(cfg, null, 2);
+  navigator.clipboard?.writeText(txt).then(()=> statusText.textContent = 'Config copied');
+};
+
+// ----- Arena sizing -----
+function resizeCanvas(){
+  canvas.width = Math.min(window.innerWidth - 380, 1400);
+  canvas.height = Math.max(window.innerHeight - 120, 400);
+  state.width = canvas.width;
+  state.height = canvas.height;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+// ----- Input -----
+window.addEventListener('keydown', e=> state.keys[e.key.toLowerCase()] = true);
+window.addEventListener('keyup', e=> state.keys[e.key.toLowerCase()] = false);
+canvas.addEventListener('mousemove', e=>{
+  const rect = canvas.getBoundingClientRect();
+  state.mouse.x = (e.clientX - rect.left) * (canvas.width / rect.width);
+  state.mouse.y = (e.clientY - rect.top) * (canvas.height / rect.height);
+});
+canvas.addEventListener('mousedown', ()=> state.mouse.down = true);
+canvas.addEventListener('mouseup', ()=> state.mouse.down = false);
+
+// ----- Entities -----
+function spawnDummies(n=3){
+  for(let i=0;i<n;i++){
+    const d = {
+      id: Date.now()+Math.random(),
+      x: 100 + Math.random()*(state.width-200),
+      y: 80 + Math.random()*(state.height-160),
+      w:28,h:40,
+      hp: 50,
+      maxHp: 50,
+      vx:0, vy:0,
+      state:'idle', stun:0,
+      color:'#bfc7d6'
+    };
+    state.dummies.push(d);
+  }
+}
+function resetArena(){
+  state.dummies = [];
+  spawnDummies(5);
+  state.projectiles = [];
+  state.player.hp = 100;
+  statusText.textContent = 'Reset';
+}
+spawnDummies(5);
+
+// ----- Utilities -----
+function now(){ return performance.now(); }
+function dist(a,b){ const dx=a.x-b.x, dy=a.y-b.y; return Math.hypot(dx,dy); }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function getPower(id){ return POWERS.find(p=>p.id===id); }
+
+// ----- Combat: firing, projectiles, collisions -----
+let lastUsed = 0;
+function tryUsePower(){
+  const p = getPower(state.currentPower);
+  if(!p) return;
+  const t = now();
+  if(t - (state._cooldown||0) < p.cooldown) return;
+  state._cooldown = t;
+  if(p.type === 'projectile'){
+    // spawn projectile aimed at mouse
+    const angle = Math.atan2(state.mouse.y - state.player.y, state.mouse.x - state.player.x);
+    state.projectiles.push({
+      id:Date.now()+Math.random(),
+      x: state.player.x + Math.cos(angle)*20,
+      y: state.player.y + Math.sin(angle)*20,
+      vx: Math.cos(angle)*p.speed / 1000,
+      vy: Math.sin(angle)*p.speed / 1000,
+      owner:'player',
+      powerId:p.id,
+      damage: p.damage,
+      radius: p.radius,
+      ttl: 3000
+    });
+    statusText.textContent = `Fired ${p.name}`;
+  } else if(p.type === 'aoe'){
+    // instant area around player
+    state.dummies.forEach(d=>{
+      if(dist(d, state.player) <= p.radius){
+        applyDamage(d, p.damage);
+        d.state = 'stun'; d.stun = p.duration || 200;
+      }
+    });
+    // store effect visual
+    state.projectiles.push({id: 'aoe_'+Date.now(), x: state.player.x, y: state.player.y, ttl: 300, powerId: p.id, aoe:true, radius:p.radius});
+    statusText.textContent = `Used ${p.name}`;
+  } else if(p.type === 'dash'){
+    // dash player a short distance
+    const angle = Math.atan2(state.mouse.y - state.player.y, state.mouse.x - state.player.x);
+    state.player.vx += Math.cos(angle)*p.speed/1000 * 0.6;
+    state.player.vy += Math.sin(angle)*p.speed/1000 * 0.6;
+    // damage dummies we pass through
+    state.dummies.forEach(d=>{
+      if(dist(d, state.player) <= p.radius + 12){
+        applyDamage(d, p.damage);
+      }
+    });
+    statusText.textContent = `Dashed`;
+  }
+}
+
+// damage helper
+function applyDamage(target, amount){
+  target.hp = Math.max(0, target.hp - amount);
+  // floating damage (simple)
+  target._float = {text: `-${amount}`, t: 800, y: target.y - 10};
+  if(target.hp <= 0){ target.state = 'dead'; }
+}
+
+// ----- Game loop -----
+function step(dt){
+  // player controls
+  const s = 0.9;
+  let ax = 0, ay = 0;
+  if(state.keys['w']||state.keys['arrowup']) ay -= 1;
+  if(state.keys['s']||state.keys['arrowdown']) ay += 1;
+  if(state.keys['a']||state.keys['arrowleft']) ax -= 1;
+  if(state.keys['d']||state.keys['arrowright']) ax += 1;
+  // normalize
+  const m = Math.hypot(ax,ay) || 1;
+  ax /= m; ay /= m;
+  state.player.vx = state.player.vx * 0.85 + ax * (220/1000);
+  state.player.vy = state.player.vy * 0.85 + ay * (220/1000);
+  state.player.x += state.player.vx * dt;
+  state.player.y += state.player.vy * dt;
+  // clamp to arena
+  state.player.x = clamp(state.player.x, 20, state.width-20);
+  state.player.y = clamp(state.player.y, 20, state.height-20);
+  // facing
+  state.player.facing = Math.atan2(state.mouse.y - state.player.y, state.mouse.x - state.player.x);
+
+  // use primary on mouse down
+  if(state.mouse.down) tryUsePower();
+
+  // update projectiles
+  for(let i=state.projectiles.length-1;i>=0;i--){
+    const pr = state.projectiles[i];
+    if(pr.aoe){
+      pr.ttl -= dt*1000;
+      if(pr.ttl <= 0) state.projectiles.splice(i,1);
+      continue;
+    }
+    pr.x += pr.vx * dt * 1000;
+    pr.y += pr.vy * dt * 1000;
+    pr.ttl -= dt*1000;
+    if(pr.ttl <= 0){ state.projectiles.splice(i,1); continue; }
+
+    // collide with dummies
+    for(const d of state.dummies){
+      if(d.state === 'dead') continue;
+      const dx = pr.x - d.x, dy = pr.y - d.y;
+      if(Math.hypot(dx,dy) <= pr.radius + Math.max(d.w,d.h)/2){
+        applyDamage(d, pr.damage);
+        // small knockback
+        d.vx += (dx/100) * 0.5; d.vy += (dy/100)*0.5;
+        state.projectiles.splice(i,1);
+        break;
+      }
+    }
+  }
+
+  // update dummies
+  for(const d of state.dummies){
+    if(d.state === 'dead') continue;
+    if(d.stun > 0){ d.stun -= dt*1000; d.state='stun'; if(d.stun<=0) d.state='idle'; }
+    // simple idle wander
+    if(d.state === 'idle'){
+      if(Math.random() < 0.01) { d.vx += (Math.random()-0.5)*0.4; d.vy += (Math.random()-0.5)*0.4; }
+    }
+    // integrate
+    d.x += d.vx * dt * 1000;
+    d.y += d.vy * dt * 1000;
+    // friction
+    d.vx *= 0.9; d.vy *= 0.9;
+    // clamp
+    d.x = clamp(d.x, 20, state.width-20);
+    d.y = clamp(d.y, 20, state.height-20);
+    // simple recovery if damaged
+    if(d.hp < d.maxHp && Math.random() < 0.002) d.hp += 1;
+    // floating text
+    if(d._float){ d._float.t -= dt*1000; d._float.y -= dt*40; if(d._float.t<=0) d._float = null; }
+  }
+
+  // update player hp UI
+  playerHpEl.style.width = (state.player.hp / 100 * 100) + '%';
+}
+
+// ----- Render -----
+function render(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // background grid
+  ctx.save();
+  ctx.globalAlpha = 0.04;
+  ctx.strokeStyle = '#ffffff';
+  for(let x=0;x<canvas.width;x+=40){
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke();
+  }
+  for(let y=0;y<canvas.height;y+=40){
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke();
+  }
+  ctx.restore();
+
+  // projectiles (including aoe)
+  for(const pr of state.projectiles){
+    if(pr.aoe){
+      const alpha = Math.max(0, pr.ttl/300);
+      ctx.beginPath(); ctx.fillStyle = `rgba(124,58,237,${0.12*alpha})`; ctx.arc(pr.x, pr.y, pr.radius, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.strokeStyle = `rgba(124,58,237,${0.22*alpha})`; ctx.arc(pr.x, pr.y, pr.radius, 0, Math.PI*2); ctx.stroke();
+      continue;
+    }
+    ctx.beginPath(); ctx.fillStyle = '#ffb86b'; ctx.arc(pr.x, pr.y, pr.radius,0,Math.PI*2); ctx.fill();
+  }
+
+  // dummies
+  for(const d of state.dummies){
+    if(d.state === 'dead'){
+      ctx.globalAlpha = 0.4;
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(d.x-d.w/2, d.y-d.h/2, d.w, d.h);
+      ctx.globalAlpha = 1;
+      continue;
+    }
+    ctx.fillStyle = d.color; ctx.fillRect(d.x-d.w/2, d.y-d.h/2, d.w, d.h);
+    // hp bar
+    const hpw = 40;
+    ctx.fillStyle = '#111827'; ctx.fillRect(d.x-hpw/2, d.y-d.h/2-10, hpw, 6);
+    ctx.fillStyle = '#ef4444'; ctx.fillRect(d.x-hpw/2, d.y-d.h/2-10, hpw*(d.hp/d.maxHp), 6);
+    // floating damage
+    if(d._float){
+      ctx.fillStyle = '#fffbeb'; ctx.font = '13px Inter'; ctx.fillText(d._float.text, d.x - 10, d._float.y);
+    }
+  }
+
+  // player
+  ctx.save();
+  ctx.translate(state.player.x, state.player.y);
+  ctx.rotate(state.player.facing);
+  // body
+  ctx.fillStyle = state.player.color; ctx.fillRect(-14,-18,28,36);
+  // gun/hand
+  ctx.fillStyle = '#111827'; ctx.fillRect(10,-4,16,8);
+  // crosshair
+  ctx.restore();
+  ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.moveTo(state.mouse.x-8,state.mouse.y); ctx.lineTo(state.mouse.x+8,state.mouse.y); ctx.moveTo(state.mouse.x,state.mouse.y-8); ctx.lineTo(state.mouse.x,state.mouse.y+8); ctx.stroke();
+}
+
+// ----- Tick -----
+let acc = 0;
+function loop(ts){
+  const dt = Math.min(0.032, (ts - state.lastTime)/1000);
+  state.lastTime = ts;
+  if(!state.paused){
+    step(dt);
+    render();
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ----- Extra keys and handlers -----
+window.addEventListener('keydown', e=>{
+  if(e.key.toLowerCase() === 'r'){ resetArena(); }
+  if(e.key === ' ') { // use secondary
+    e.preventDefault();
+    const previousDown = state.mouse.down;
+    state.mouse.down = false;
+    // temporarily change power to dash for demonstration
+    const saved = state.currentPower;
+    state.currentPower = 'dash';
+    tryUsePower();
+    state.currentPower = saved;
+    state.mouse.down = previousDown;
+  }
+});
+
+// initialize UI
+initUI();
+statusText.textContent = 'Ready. Tip: click to fire, space to dash, R to reset.';
+</script>
+</body>
+</html>
 
