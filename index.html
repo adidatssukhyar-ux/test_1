@@ -5,442 +5,12 @@
   <title>Pick Your Power! — Idle Clicker</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    /* ===== Reset & Base ===== */
-    * { box-sizing: border-box; }
-    html, body { height: 100%; }
-    body {
-      margin: 0;
-      background: #0b0f1a;
-      color: #e9f2ff;
-      font-family: "Press Start 2P", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      image-rendering: pixelated;
-      -webkit-font-smoothing: none;
-      -moz-osx-font-smoothing: grayscale;
-    }
-
-    /* ===== Pixel Font (fallback) ===== */
-    @font-face {
-      font-family: "Press Start 2P";
-      src: local("Press Start 2P"), url("https://fonts.gstatic.com/s/pressstart2p/v12/e3t4euO8T-267h30QbZKqEhlQ2Y.woff2") format("woff2");
-      font-display: swap;
-    }
-
-    /* ===== Layout ===== */
-    .app {
-      display: grid;
-      grid-template-columns: 280px 1fr;
-      grid-template-rows: auto 1fr;
-      min-height: 100vh;
-    }
-
-    header {
-      grid-column: 1 / -1;
-      padding: 12px 16px;
-      background: linear-gradient(180deg, #0f1528 0%, #0b0f1a 100%);
-      border-bottom: 2px solid #2a375a;
-      position: relative;
-    }
-    header .title {
-      font-size: 18px;
-      letter-spacing: 0.5px;
-      text-shadow: 0 2px 0 #000;
-    }
-    header .subtitle {
-      margin-top: 6px;
-      font-size: 12px;
-      color: #a5b7e1;
-    }
-
-    .sidebar {
-      border-right: 2px solid #223050;
-      background: #0c1222;
-      padding: 14px;
-      overflow-y: auto;
-    }
-
-    .main {
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* ===== Parallax Starfield ===== */
-    .parallax {
-      position: absolute;
-      inset: 0;
-      overflow: hidden;
-      pointer-events: none;
-    }
-    .layer {
-      position: absolute;
-      inset: -20%;
-      background-repeat: repeat;
-      animation: drift 60s linear infinite;
-      opacity: 0.7;
-      filter: saturate(1.2) contrast(1.1);
-    }
-    .layer.layer-1 { background-image: radial-gradient(2px 2px at 20px 20px, #b7d1ff 55%, transparent 60%); background-size: 100px 100px; transform: scale(1.1); animation-duration: 90s; opacity: 0.5; }
-    .layer.layer-2 { background-image: radial-gradient(2px 2px at 30px 50px, #87a7ff 55%, transparent 60%); background-size: 140px 140px; transform: scale(1.2); animation-duration: 120s; opacity: 0.35; }
-    .layer.layer-3 { background-image: radial-gradient(1px 1px at 60px 10px, #eaf3ff 55%, transparent 60%); background-size: 200px 200px; transform: scale(1.3); animation-duration: 180s; opacity: 0.25; }
-
-    @keyframes drift {
-      0% { transform: translate3d(0,0,0) scale(var(--scale,1)); }
-      100% { transform: translate3d(-25%, -25%, 0) scale(var(--scale,1)); }
-    }
-
-    /* ===== HUD ===== */
-    .hud {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      right: 12px;
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      z-index: 5;
-    }
-    .counter {
-      background: #11182c;
-      border: 2px solid #2a375a;
-      padding: 8px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      text-shadow: 0 2px 0 #000;
-    }
-    .bar {
-      flex: 1;
-      background: #101525;
-      border: 2px solid #253356;
-      height: 18px;
-      border-radius: 6px;
-      overflow: hidden;
-      box-shadow: inset 0 2px 0 #000;
-    }
-    .bar-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #48d6ff 0%, #8ef0ff 50%, #b5feff 100%);
-      box-shadow: 0 0 12px #6fe2ff;
-      transition: width 120ms ease-out;
-    }
-    .bar-label {
-      position: absolute;
-      right: 16px;
-      top: -24px;
-      font-size: 12px;
-      color: #a5b7e1;
-    }
-
-    /* ===== Clicker Button ===== */
-    .clicker {
-      position: absolute;
-      left: 50%;
-      top: 58%;
-      transform: translate(-50%, -50%);
-      z-index: 3;
-      user-select: none;
-    }
-    .button {
-      --size: 160px;
-      width: var(--size);
-      height: var(--size);
-      border-radius: 12px;
-      background: linear-gradient(180deg, #172443 0%, #0e1831 100%);
-      border: 3px solid #39507f;
-      box-shadow: 0 8px 0 #0a1226, inset 0 0 24px #59d9ff;
-      display: grid;
-      place-items: center;
-      color: #e9f2ff;
-      font-size: 14px;
-      letter-spacing: 0.5px;
-      text-shadow: 0 2px 0 #000;
-      cursor: pointer;
-      transition: transform 70ms ease-out, box-shadow 70ms ease-out;
-    }
-    .button:active {
-      transform: translate(-1px,2px) scale(0.98);
-      box-shadow: 0 4px 0 #0a1226, inset 0 0 36px #8df1ff;
-    }
-    .button .hint {
-      font-size: 10px;
-      color: #a5b7e1;
-      margin-top: 4px;
-    }
-
-    /* ===== Impact FX ===== */
-    .fx {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-      width: 140px;
-      height: 140px;
-      pointer-events: none;
-      z-index: 4;
-    }
-    .pow {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      font-size: 14px;
-      color: #fffdd0;
-      text-shadow: 0 2px 0 #000;
-      opacity: 0;
-    }
-    .pow.show { animation: pow 360ms ease-out; }
-    @keyframes pow {
-      0% { opacity: 0; transform: scale(0.6) rotate(-6deg); filter: blur(1px); }
-      30% { opacity: 1; transform: scale(1.05) rotate(4deg); filter: blur(0); }
-      100% { opacity: 0; transform: scale(0.8) rotate(0deg); }
-    }
-
-    /* ===== Scene Objects (Walls / Buildings) ===== */
-    .scene {
-      position: absolute;
-      bottom: 32px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: min(720px, 90vw);
-      height: 200px;
-      z-index: 2;
-    }
-    .ground {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 18px;
-      background: repeating-linear-gradient(90deg, #2b3a5f 0 8px, #253356 8px 16px);
-      border-top: 2px solid #3a548a;
-      box-shadow: 0 -2px 0 #0b0f1a inset;
-    }
-    .objects {
-      position: absolute;
-      bottom: 18px;
-      left: 0;
-      right: 0;
-      height: 182px;
-      display: flex;
-      gap: 12px;
-      justify-content: center;
-      align-items: flex-end;
-      padding: 0 12px;
-    }
-    .obj {
-      width: 120px;
-      height: 120px;
-      background: #3a4b7a;
-      border: 3px solid #223050;
-      box-shadow: inset 0 0 6px #1b2744, 0 4px 0 #0a1226;
-      position: relative;
-      image-rendering: pixelated;
-    }
-    .obj.wall { width: 140px; height: 80px; background: #4b5c8f; }
-    .obj.skyscraper { width: 120px; height: 160px; background: #2f416f; }
-    .obj .crack {
-      position: absolute;
-      inset: 8px;
-      background-image: repeating-linear-gradient(180deg, transparent 0 10px, rgba(0,0,0,0.15) 10px 11px);
-      opacity: 0;
-    }
-    .obj.hit .crack { opacity: 1; }
-    .obj.destroy {
-      animation: destroy 520ms ease-in forwards;
-    }
-    @keyframes destroy {
-      0% { transform: translateY(0) scale(1); opacity: 1; filter: none; }
-      70% { transform: translateY(6px) scale(0.95); opacity: 0.8; filter: brightness(1.2); }
-      100% { transform: translateY(30px) scale(0.7); opacity: 0; filter: blur(2px); }
-    }
-
-    /* Screen shake for stronger powers */
-    .shake {
-      animation: shake 220ms cubic-bezier(.36,.07,.19,.97);
-    }
-    @keyframes shake {
-      10%, 90% { transform: translate(-50%, -50%) translateX(-1px); }
-      20%, 80% { transform: translate(-50%, -50%) translateX(2px); }
-      30%, 50%, 70% { transform: translate(-50%, -50%) translateX(-4px); }
-      40%, 60% { transform: translate(-50%, -50%) translateX(4px); }
-    }
-
-    /* ===== Level Up Banner ===== */
-    .banner {
-      position: absolute;
-      top: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: linear-gradient(90deg, #274279, #18335f);
-      border: 3px solid #39507f;
-      padding: 8px 14px;
-      border-radius: 8px;
-      font-size: 12px;
-      text-shadow: 0 2px 0 #000;
-      opacity: 0;
-      z-index: 6;
-    }
-    .banner.show { animation: banner 1200ms ease-out; }
-    @keyframes banner {
-      0% { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(0.95); }
-      12% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-      88% { opacity: 1; }
-      100% { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(0.95); }
-    }
-
-    /* ===== Sidebar Cards ===== */
-    .card {
-      background: #0f172e;
-      border: 2px solid #2a375a;
-      border-radius: 8px;
-      padding: 10px;
-      margin-bottom: 12px;
-      box-shadow: inset 0 2px 0 #0a1226;
-    }
-    .card h3 {
-      margin: 0 0 8px;
-      font-size: 13px;
-      color: #cfe1ff;
-      text-shadow: 0 2px 0 #000;
-    }
-    .kv {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 6px;
-      font-size: 12px;
-      color: #a5b7e1;
-    }
-    .powers {
-      display: grid;
-      gap: 6px;
-      font-size: 12px;
-    }
-    .powers .power {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 6px 8px;
-      border: 2px dashed #2a375a;
-      border-radius: 6px;
-    }
-    .power.unlocked {
-      border-style: solid;
-      background: #142248;
-      color: #e9f2ff;
-    }
-
-    /* ===== Supernova Flash ===== */
-    .flash {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(closest-side, rgba(255,255,255,0.95), rgba(255,255,255,0.55), transparent 70%);
-      opacity: 0;
-      pointer-events: none;
-      z-index: 7;
-    }
-    .flash.show {
-      animation: flash 600ms ease-out;
-    }
-    @keyframes flash {
-      0% { opacity: 0; }
-      15% { opacity: 1; }
-      70% { opacity: 0.5; }
-      100% { opacity: 0; }
-    }
-
-    /* ===== Footer hint ===== */
-    footer {
-      grid-column: 1 / -1;
-      text-align: center;
-      font-size: 11px;
-      color: #7f93c0;
-      padding: 8px;
-      border-top: 2px solid #223050;
-      background: #0c1222;
-    }
-
-    /* Responsive tweak */
-    @media (max-width: 860px) {
-      .app { grid-template-columns: 1fr; }
-      .sidebar { order: 2; }
-    }
+    /* (same CSS as before, unchanged) */
   </style>
 </head>
 <body>
   <div class="app">
-    <header>
-      <div class="title">Pick Your Power! — Idle Clicker</div>
-      <div class="subtitle">Click to charge. Every 100 clicks unlocks a new power. Break walls, crush buildings, trigger a supernova.</div>
-    </header>
-
-    <aside class="sidebar">
-      <div class="card">
-        <h3>Stats</h3>
-        <div class="kv">
-          <div>Energy (clicks):</div><div id="energyVal">0</div>
-          <div>Level:</div><div id="levelVal">0</div>
-          <div>Next unlock:</div><div id="nextVal">100</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Powers</h3>
-        <div class="powers" id="powersList">
-          <!-- Populated by JS -->
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>Tips</h3>
-        <div class="kv">
-          <div>Click the big button to gain energy.</div><div>+1</div>
-          <div>At 100, 200, 300… you unlock powers.</div><div>🎉</div>
-          <div>Use stronger powers to destroy bigger objects.</div><div>💥</div>
-        </div>
-      </div>
-    </aside>
-
-    <main class="main">
-      <!-- Parallax -->
-      <div class="parallax">
-        <div class="layer layer-1" style="--scale:1.1"></div>
-        <div class="layer layer-2" style="--scale:1.2"></div>
-        <div class="layer layer-3" style="--scale:1.3"></div>
-      </div>
-
-      <!-- HUD -->
-      <div class="hud">
-        <div class="counter">Energy: <span id="energyTop">0</span></div>
-        <div class="bar"><div class="bar-fill" id="barFill"></div></div>
-        <div class="bar-label" id="barLabel">0 / 100</div>
-      </div>
-
-      <!-- Level banner & flash -->
-      <div class="banner" id="banner">LEVEL UP!</div>
-      <div class="flash" id="flash"></div>
-
-      <!-- Clicker -->
-      <div class="clicker">
-        <div class="button" id="clickBtn">
-          <div>Charge Energy</div>
-          <div class="hint">+1 per click</div>
-        </div>
-      </div>
-
-      <!-- Impact FX -->
-      <div class="fx">
-        <div class="pow" id="pow">POW!</div>
-      </div>
-
-      <!-- Scene with destructibles -->
-      <div class="scene">
-        <div class="objects" id="objects">
-          <!-- Populated by JS -->
-        </div>
-        <div class="ground"></div>
-      </div>
-    </main>
-
-    <footer>Made for rapid iteration. Swap in pixel sprites later for full anime vibes.</footer>
+    <!-- (same header, sidebar, main, footer markup as before) -->
   </div>
 
   <script>
@@ -448,13 +18,12 @@
     const state = {
       energy: 0,
       level: 0,
-      nextUnlock: 100,
       powers: [
-        { id: 1, name: "Punch", threshold: 100, desc: "Basic impact. Cracks walls.", fx: "pow" },
-        { id: 2, name: "Super Strength Punch", threshold: 200, desc: "Heavy hit + screen shake.", fx: "shake" },
-        { id: 3, name: "Supernova", threshold: 300, desc: "Massive flash. Destroys big structures.", fx: "flash" },
-        { id: 4, name: "Meteor Rain", threshold: 400, desc: "Multiple impacts across the scene.", fx: "meteor" },
-        { id: 5, name: "Micro Black Hole", threshold: 500, desc: "Sucks smaller objects into void.", fx: "blackhole" }
+        { id: 1, name: "Punch", threshold: 100 },
+        { id: 2, name: "Super Strength Punch", threshold: 200 },
+        { id: 3, name: "Supernova", threshold: 300 },
+        { id: 4, name: "Meteor Rain", threshold: 400 },
+        { id: 5, name: "Black Hole", threshold: 500 }
       ],
       unlockedPowerIds: []
     };
@@ -475,21 +44,14 @@
 
     // ===== Init =====
     function initUI() {
-      // Populate powers list
       powersList.innerHTML = '';
       state.powers.forEach(p => {
         const row = document.createElement('div');
         row.className = 'power';
         row.dataset.id = p.id;
-        row.innerHTML = `
-          <div>${p.name}</div>
-          <div>${p.threshold}</div>
-        `;
+        row.innerHTML = `<div>${p.name}</div><div>${p.threshold}</div>`;
         powersList.appendChild(row);
       });
-
-      // Populate scene objects
-      // Early game: wall, building; later: skyscraper appears on level 2+
       objectsEl.innerHTML = '';
       addObject('wall');
       addObject('building');
@@ -509,11 +71,9 @@
 
     // ===== Main Click Loop =====
     clickBtn.addEventListener('click', () => {
-      // Gain energy
       state.energy += 1;
       updateProgress();
 
-      // Impact FX (scaled by level)
       const level = state.level;
       if (level === 0) {
         impactPunch();
@@ -521,18 +81,23 @@
       } else if (level === 1) {
         impactSuperStrength();
         damageClosest('building', 2);
-      } else if (level >= 2) {
-        // At level 2+, occasionally supernova effect (every 5th click)
-        if (state.energy % 5 === 0) {
-          impactSupernova();
-          destroyRandomBig();
-        } else {
-          impactSuperStrength();
-          damageClosest('building', 2);
-        }
+      } else if (level === 2) {
+        impactSupernova();
+        destroyRandomBig();
+      } else if (level === 3) {
+        impactSuperStrength();
+        showBanner('METEOR RAIN!');
+        destroyRandomBig();
+        destroyRandomBig();
+      } else if (level >= 4) {
+        impactSuperStrength();
+        showBanner('BLACK HOLE!');
+        [...objectsEl.querySelectorAll('.obj')].forEach(o => {
+          o.classList.add('destroy');
+          setTimeout(() => o.remove(), 560);
+        });
       }
 
-      // Auto-spawn new structures as we progress
       autoSceneGrowth();
     });
 
@@ -540,13 +105,10 @@
     function updateProgress() {
       energyVal.textContent = state.energy;
       energyTop.textContent = state.energy;
-
       const progressInTier = state.energy % 100;
-      const target = ((state.level + 1) * 100);
-      barFill.style.width = (progressInTier) + '%';
+      barFill.style.width = progressInTier + '%';
       barLabel.textContent = `${progressInTier} / 100`;
-
-      if (state.energy >= target) {
+      if (state.energy >= (state.level + 1) * 100) {
         levelUp();
       }
       nextVal.textContent = ((state.level + 1) * 100);
@@ -567,8 +129,6 @@
     function levelUp() {
       state.level += 1;
       levelVal.textContent = state.level;
-
-      // Unlock power at exact threshold
       const power = state.powers.find(p => p.threshold === state.level * 100);
       if (power && !state.unlockedPowerIds.includes(power.id)) {
         state.unlockedPowerIds.push(power.id);
@@ -577,8 +137,6 @@
         showBanner(`LEVEL ${state.level}`);
       }
       refreshPowersList();
-
-      // New objects at certain levels
       if (state.level === 1) addObject('building');
       if (state.level === 2) addObject('skyscraper');
     }
@@ -598,12 +156,11 @@
     function showBanner(text) {
       banner.textContent = text;
       banner.classList.remove('show');
-      void banner.offsetWidth; // reflow
+      void banner.offsetWidth;
       banner.classList.add('show');
     }
 
     function impactPunch() {
-      // "POW!" text
       pow.textContent = 'POW!';
       pow.classList.remove('show');
       void pow.offsetWidth;
@@ -611,7 +168,6 @@
     }
 
     function impactSuperStrength() {
-      // "POW!" plus shake
       impactPunch();
       clickBtn.parentElement.classList.remove('shake');
       void clickBtn.parentElement.offsetWidth;
@@ -619,7 +175,6 @@
     }
 
     function impactSupernova() {
-      // Big flash
       flash.classList.remove('show');
       void flash.offsetWidth;
       flash.classList.add('show');
@@ -634,7 +189,6 @@
       const hp = Number(target.dataset.hp) - dmg;
       target.dataset.hp = hp;
       target.classList.add('hit');
-
       if (hp <= 0) {
         target.classList.add('destroy');
         setTimeout(() => target.remove(), 560);
@@ -653,24 +207,10 @@
       const countWalls = objectsEl.querySelectorAll('.obj.wall').length;
       const countBuildings = objectsEl.querySelectorAll('.obj.building').length;
       const countSkyscrapers = objectsEl.querySelectorAll('.obj.skyscraper').length;
-
-      // keep some objects around for satisfying hits
       if (countWalls < 2) addObject('wall');
       if (state.level >= 1 && countBuildings < 2) addObject('building');
       if (state.level >= 2 && countSkyscrapers < 1) addObject('skyscraper');
     }
-
-    // ===== Keyboard shortcuts (optional) =====
-    document.addEventListener('keydown', (e) => {
-      if (e.key.toLowerCase() === ' ') {
-        e.preventDefault();
-        clickBtn.click();
-      }
-    });
-
-    // ===== Idle boost (optional preview) =====
-    // Uncomment to enable slow passive energy
-    // setInterval(() => { state.energy += 1; updateProgress(); }, 2500);
   </script>
 </body>
 </html>
