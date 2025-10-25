@@ -453,17 +453,9 @@
       { id: 2, name: "Super Strength Punch", threshold: 200 },
       { id: 3, name: "Supernova", threshold: 300 },
       { id: 4, name: "Meteor Rain", threshold: 400 },
-      { id: 5, name: "Black Hole", threshold: 500 },
-      // New tiers (follow your 100-per-level system; banners will unlock at these levels)
-      { id: 6, name: "Universal", threshold: 600 },
-      { id: 7, name: "Outerversal", threshold: 700 },
-      { id: 8, name: "Boundless", threshold: 800 }
+      { id: 5, name: "Black Hole", threshold: 500 }
     ],
-    unlockedPowerIds: [],
-    // Combo / crit tracking
-    comboCount: 0,
-    lastClickTime: 0,
-    boundlessTriggered: false
+    unlockedPowerIds: []
   };
 
   // ===== DOM Refs =====
@@ -481,7 +473,7 @@
 
   // ===== Audio Refs =====
   const sfxPunch     = document.getElementById('sfxPunch');
-  const sfxStrength  = document.getElementById('sfxStrength'); // Saitama Serious Punch
+  const sfxStrength  = document.getElementById('sfxStrength');
   const sfxNova      = document.getElementById('sfxNova');
   const sfxMeteor    = document.getElementById('sfxMeteor');
   const sfxBlackhole = document.getElementById('sfxBlackhole');
@@ -519,29 +511,10 @@
     if (e.key.toLowerCase() === 'e') handleClick();
   });
 
-  // ===== Main Click Logic (with combo + crit) =====
+  // ===== Main Click Logic =====
   function handleClick() {
-    const now = Date.now();
-    // Combo logic: 400ms window, capped at +5
-    if (now - state.lastClickTime < 400) {
-      state.comboCount++;
-    } else {
-      state.comboCount = 0;
-    }
-    state.lastClickTime = now;
-
-    let energyGain = 2 + Math.min(state.comboCount, 5); // base 2 per click
-    // Critical hit: 10% chance, 1.5x
-    if (Math.random() < 0.10) {
-      energyGain = Math.floor(energyGain * 1.5);
-      showBanner('CRIT!!');
-      impactPunch(); // quick visual pulse
-    }
-
-    state.energy += energyGain;
-    // Update numbers immediately so you see counts
-    energyVal.textContent = state.energy;
-    energyTop.textContent = state.energy;
+    state.energy += 1;
+    updateProgress();
 
     const level = state.level;
     if (level === 0) {
@@ -550,7 +523,7 @@
       damageClosest('wall', 1);
     } else if (level === 1) {
       impactSuperStrength();
-      sfxStrength.play(); // plays Saitama Serious Punch
+      sfxStrength.play();
       damageClosest('building', 2);
     } else if (level === 2) {
       impactSupernova();
@@ -574,36 +547,19 @@
       });
     }
 
-    // Boundless chaos when energy reaches 100k (once)
-    if (!state.boundlessTriggered && state.energy >= 100000) {
-      state.boundlessTriggered = true;
-      showBanner('BOUNDLESS!!!');
-      triggerBoundlessChaos();
-    }
-
-    // Update combo meter HUD if present
-    const comboMeter = document.getElementById('comboMeter');
-    if (comboMeter) comboMeter.textContent = `Combo: ${state.comboCount}`;
-
-    updateProgress();
     autoSceneGrowth();
   }
 
-  // ===== HUD & Progress (one level per threshold) =====
+  // ===== HUD & Progress =====
   function updateProgress() {
     energyVal.textContent = state.energy;
     energyTop.textContent = state.energy;
-
-    // Keep the 100-per-tier progression; do NOT skip multiple levels
-    const nextThreshold = (state.level + 1) * 100;
-    const progressInTier = Math.min(state.energy % 100, 100);
+    const progressInTier = state.energy % 100;
     barFill.style.width = progressInTier + '%';
-
-    if (state.energy >= nextThreshold) {
-      levelUp(); // increments exactly one level
+    if (state.energy >= (state.level + 1) * 100) {
+      levelUp();
     }
-
-    nextVal.textContent = nextThreshold;
+    nextVal.textContent = ((state.level + 1) * 100);
   }
 
   function updateHUD() {
@@ -620,8 +576,6 @@
   function levelUp() {
     state.level += 1;
     levelVal.textContent = state.level;
-
-    // Show power name if it exists at this threshold, otherwise LEVEL N
     const power = state.powers.find(p => p.threshold === state.level * 100);
     if (power && !state.unlockedPowerIds.includes(power.id)) {
       state.unlockedPowerIds.push(power.id);
@@ -629,7 +583,6 @@
     } else {
       showBanner(`LEVEL ${state.level}`);
     }
-
     refreshPowersList();
     if (state.level === 1) addObject('building');
     if (state.level === 2) addObject('skyscraper');
@@ -706,17 +659,11 @@
     if (hp <= 0) {
       target.classList.add('destroy');
       setTimeout(() => target.remove(), 560);
-      // optional: respawn to keep scene alive
-      // addObject(type);
     }
   }
 
   function destroyRandomBig() {
     const bigs = [...objectsEl.querySelectorAll('.obj.skyscraper, .obj.building')].filter(el => !el.classList.contains('destroy'));
-    if (!bigs.length) return;
-  function destroyRandomBig() {
-    const bigs = [...objectsEl.querySelectorAll('.obj.skyscraper, .obj.building')]
-      .filter(el => !el.classList.contains('destroy'));
     if (!bigs.length) return;
     const target = bigs[Math.floor(Math.random() * bigs.length)];
     target.classList.add('destroy');
@@ -730,36 +677,6 @@
     if (countWalls < 2) addObject('wall');
     if (state.level >= 1 && countBuildings < 2) addObject('building');
     if (state.level >= 2 && countSkyscrapers < 1) addObject('skyscraper');
-  }
-
-  // ===== Boundless Chaos Effect =====
-  function triggerBoundlessChaos() {
-    document.body.style.filter = "invert(1) hue-rotate(180deg)";
-    document.body.classList.add('shake');
-    setTimeout(() => document.body.classList.remove('shake'), 5000);
-
-    const glitch = document.createElement('div');
-    glitch.id = 'glitch';
-    glitch.innerText = "REALITY BROKEN";
-    glitch.style.position = 'fixed';
-    glitch.style.fontSize = '3rem';
-    glitch.style.fontWeight = 'bold';
-    glitch.style.color = 'red';
-    glitch.style.zIndex = '9999';
-    glitch.style.pointerEvents = 'none';
-    document.body.appendChild(glitch);
-
-    const mover = setInterval(() => {
-      glitch.style.left = Math.random() * window.innerWidth + 'px';
-      glitch.style.top = Math.random() * window.innerHeight + 'px';
-    }, 200);
-
-    // Restore after chaos
-    setTimeout(() => {
-      clearInterval(mover);
-      glitch.remove();
-      document.body.style.filter = 'none';
-    }, 6000);
   }
 </script>
 </body>
