@@ -443,498 +443,241 @@
     <footer>Made for rapid iteration. Swap in pixel sprites later for full anime vibes.</footer>
   </div>
 
-  <script>
-// ===== Config =====
-const CONFIG = {
-  baseEnergyPerClick: 2,
-  comboWindowMs: 400,
-  comboBonusCap: 5,
-  critChance: 0.10,
-  critMultiplier: 1.5,
-  levels: [
-    { id: 1, name: "Punch", threshold: 100 },
-    { id: 2, name: "Super Strength Punch", threshold: 200 },
-    { id: 3, name: "Supernova", threshold: 300 },
-    { id: 4, name: "Meteor Rain", threshold: 400 },
-    { id: 5, name: "Black Hole", threshold: 500 },
-    { id: 6, name: "Universal", threshold: 1000 },
-    { id: 7, name: "Outerversal", threshold: 5000 },
-    { id: 8, name: "Boundless", threshold: 100000 }
-  ],
-  wallHP: 3,
-  buildingHP: 10,
-  meteorCount: 12
-};
+ <script>
+  // ===== Game State =====
+  const state = {
+    energy: 0,
+    level: 0,
+    powers: [
+      { id: 1, name: "Punch", threshold: 100 },
+      { id: 2, name: "Super Strength Punch", threshold: 200 },
+      { id: 3, name: "Supernova", threshold: 300 },
+      { id: 4, name: "Meteor Rain", threshold: 400 },
+      { id: 5, name: "Black Hole", threshold: 500 }
+    ],
+    unlockedPowerIds: []
+  };
 
-// ===== Game State =====
-const state = {
-  energy: 0,
-  levelIndex: 0, // points to CONFIG.levels[state.levelIndex]
-  comboCount: 0,
-  lastClickTime: 0,
-  meteorsActive: 0,
-  blackHoleActive: false
-};
+  // ===== DOM Refs =====
+  const clickBtn   = document.getElementById('clickBtn');
+  const energyVal  = document.getElementById('energyVal');
+  const levelVal   = document.getElementById('levelVal');
+  const nextVal    = document.getElementById('nextVal');
+  const energyTop  = document.getElementById('energyTop');
+  const barFill    = document.getElementById('barFill');
+  const banner     = document.getElementById('banner');
+  const flash      = document.getElementById('flash');
+  const pow        = document.getElementById('pow');
+  const powersList = document.getElementById('powersList');
+  const objectsEl  = document.getElementById('objects');
 
-// ===== DOM Refs =====
-const clickBtn   = document.getElementById('clickBtn');
-const energyVal  = document.getElementById('energyVal');
-const levelVal   = document.getElementById('levelVal');
-const nextVal    = document.getElementById('nextVal');
-const barFill    = document.getElementById('barFill');
-const banner     = document.getElementById('banner');
-const flash      = document.getElementById('flash');
-const pow        = document.getElementById('pow');
-const powersList = document.getElementById('powersList');
-const objectsEl  = document.getElementById('objects');
+  // ===== Audio Refs =====
+  const sfxPunch     = document.getElementById('sfxPunch');
+  const sfxStrength  = document.getElementById('sfxStrength'); // Saitama Serious Punch
+  const sfxNova      = document.getElementById('sfxNova');
+  const sfxMeteor    = document.getElementById('sfxMeteor');
+  const sfxBlackhole = document.getElementById('sfxBlackhole');
 
-// ===== Audio Refs (optional) =====
-const sfxPunch     = document.getElementById('sfxPunch');
-const sfxStrength  = document.getElementById('sfxStrength');
-const sfxEpic      = document.getElementById('sfxEpic');
-const sfxMeteor    = document.getElementById('sfxMeteor');
-const sfxBlackhole = document.getElementById('sfxBlackhole');
-
-// ===== Init =====
-function initUI() {
-  // Populate powers list
-  if (powersList) {
+  // ===== Init =====
+  function initUI() {
     powersList.innerHTML = '';
-    CONFIG.levels.forEach(p => {
+    state.powers.forEach(p => {
       const row = document.createElement('div');
       row.className = 'power';
       row.dataset.id = p.id;
       row.innerHTML = `<div>${p.name}</div><div>${p.threshold}</div>`;
       powersList.appendChild(row);
     });
+    objectsEl.innerHTML = '';
+    addObject('wall');
+    addObject('building');
   }
 
-  // Spawn starter objects
-  objectsEl.innerHTML = '';
-  for (let i = 0; i < 4; i++) addObject('wall');
-  for (let i = 0; i < 3; i++) addObject('building');
+  function addObject(type) {
+    const obj = document.createElement('div');
+    obj.className = `obj ${type}`;
+    obj.dataset.type = type;
+    obj.dataset.hp = type === 'wall' ? 2 : type === 'building' ? 4 : 6;
+    obj.innerHTML = `<div class="crack"></div>`;
+    objectsEl.appendChild(obj);
+  }
 
+  initUI();
   updateHUD();
-}
-initUI();
 
-// ===== Input =====
-clickBtn?.addEventListener('click', handleClick);
-document.addEventListener('keydown', (e) => {
-  if (e.key.toLowerCase() === 'e') handleClick();
-});
+  // ===== Input Bindings =====
+  clickBtn.addEventListener('click', handleClick);
+  document.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'e') handleClick();
+  });
 
-// ===== Main Click Logic =====
-function handleClick() {
-  const now = Date.now();
+  // ===== Main Click Logic =====
+  function handleClick() {
+    state.energy += 1;
+    updateProgress();
 
-  // Combo logic (400ms window, capped at +5)
-  if (now - state.lastClickTime < 400) {
-    state.comboCount++;
-  } else {
-    state.comboCount = 0;
-  }
-  state.lastClickTime = now;
-
-  let energyGain = 2 + Math.min(state.comboCount, 5);
-
-  // Critical hit (10% chance, 1.5× multiplier)
-  if (Math.random() < 0.10) {
-    energyGain = Math.floor(energyGain * 1.5);
-    showBanner('CRIT!!');
-    pulsePow('CRIT!!');
-  }
-
-  state.energy += energyGain;
-  energyVal.textContent = state.energy; // ensure number updates immediately
-
-  // Current level name
-  const levelName = CONFIG.levels[state.levelIndex]?.name;
-
-  switch (levelName) {
-    case "Punch":
+    const level = state.level;
+    if (level === 0) {
       impactPunch();
-      document.getElementById('sfxSaitama')?.play(); // Saitama punch sound
+      sfxPunch.play();
       damageClosest('wall', 1);
-      break;
-
-    case "Super Strength Punch":
+    } else if (level === 1) {
       impactSuperStrength();
-      sfxStrength?.play();
+      sfxStrength.play(); // plays Saitama Serious Punch
       damageClosest('building', 2);
-      break;
-
-    case "Supernova":
+    } else if (level === 2) {
       impactSupernova();
+      sfxNova.play();
       destroyRandomBig();
-      break;
-
-    case "Meteor Rain":
+    } else if (level === 3) {
       impactSuperStrength();
       showBanner('METEOR RAIN!');
-      sfxMeteor?.play();
+      sfxMeteor.play();
       meteorRain();
       destroyRandomBig();
       destroyRandomBig();
-      break;
-
-    case "Black Hole":
+    } else if (level >= 4) {
       impactSuperStrength();
       showBanner('BLACK HOLE!');
-      sfxBlackhole?.play();
+      sfxBlackhole.play();
       blackHole();
-      suckAllObjects();
-      break;
+      [...objectsEl.querySelectorAll('.obj')].forEach(o => {
+        o.classList.add('destroy');
+        setTimeout(() => o.remove(), 560);
+      });
+    }
 
-    case "Universal":
-      impactSuperStrength();
-      showBanner('UNIVERSAL!');
-      flashScreen(500);
-      wipeObjects();
-      break;
-
-    case "Outerversal":
-      impactSuperStrength();
-      showBanner('OUTERVERSAL!');
-      meteorRain();
-      blackHole();
-      break;
-
-    case "Boundless":
-      if (state.energy >= 100000) {
-        showBanner('BOUNDLESS!!!');
-        triggerBoundlessChaos();
-      }
-      break;
+    autoSceneGrowth();
   }
 
-  // Update combo meter HUD
-  const comboMeter = document.getElementById('comboMeter');
-  if (comboMeter) comboMeter.textContent = `Combo: ${state.comboCount}`;
-
-  updateProgress();
-  autoSceneGrowth();
-}
-
-  state.energy += energyGain;
-  updateProgress();
-
-  // Current level behavior
-  const level = CONFIG.levels[state.levelIndex]?.name || "Punch";
-  switch (level) {
-    case "Punch":
-      impactPunch();
-      sfxPunch && sfxPunch.play?.();
-      damageClosest('wall', 1);
-      break;
-
-    case "Super Strength Punch":
-      impactSuperStrength();
-      sfxStrength && sfxStrength.play?.();
-      // brief epic layer
-      if (sfxEpic) {
-        sfxStrength.onended = () => {
-          sfxEpic.play();
-          setTimeout(() => {
-            sfxEpic.pause();
-            sfxEpic.currentTime = 0;
-          }, 15000);
-        };
-      }
-      damageClosest('building', 2);
-      break;
-
-    case "Supernova":
-      impactSupernova();
-      destroyRandomBig();
-      break;
-
-    case "Meteor Rain":
-      impactSuperStrength();
-      showBanner('METEOR RAIN!');
-      sfxMeteor && sfxMeteor.play?.();
-      meteorRain();
-      destroyRandomBig();
-      destroyRandomBig();
-      break;
-
-    case "Black Hole":
-      impactSuperStrength();
-      showBanner('BLACK HOLE!');
-      sfxBlackhole && sfxBlackhole.play?.();
-      blackHole();
-      suckAllObjects();
-      break;
-
-    case "Universal":
-      impactSuperStrength();
-      showBanner('UNIVERSAL!');
-      flashScreen(500);
-      wipeObjects();
-      break;
-
-    case "Outerversal":
-      impactSuperStrength();
-      showBanner('OUTERVERSAL!');
-      meteorRain();
-      blackHole();
-      break;
-
-    case "Boundless":
-      if (state.energy >= 100000) {
-        showBanner('BOUNDLESS!!!');
-        triggerBoundlessChaos();
-      }
-      break;
+  // ===== HUD & Progress =====
+  function updateProgress() {
+    energyVal.textContent = state.energy;
+    energyTop.textContent = state.energy;
+    const progressInTier = state.energy % 100;
+    barFill.style.width = progressInTier + '%';
+    if (state.energy >= (state.level + 1) * 100) {
+      levelUp();
+    }
+    nextVal.textContent = ((state.level + 1) * 100);
   }
 
-  // HUD combo meter
-  const comboMeter = document.getElementById('comboMeter');
-  if (comboMeter) comboMeter.textContent = `Combo: ${state.comboCount}`;
+  function updateHUD() {
+    energyVal.textContent = state.energy;
+    levelVal.textContent = state.level;
+    energyTop.textContent = state.energy;
+    nextVal.textContent = ((state.level + 1) * 100);
+    const progressInTier = state.energy % 100;
+    barFill.style.width = progressInTier + '%';
+    refreshPowersList();
+  }
 
-  autoSceneGrowth();
-}
+  // ===== Level Up =====
+  function levelUp() {
+    state.level += 1;
+    levelVal.textContent = state.level;
+    const power = state.powers.find(p => p.threshold === state.level * 100);
+    if (power && !state.unlockedPowerIds.includes(power.id)) {
+      state.unlockedPowerIds.push(power.id);
+      showBanner(`Unlocked: ${power.name}`);
+    } else {
+      showBanner(`LEVEL ${state.level}`);
+    }
+    refreshPowersList();
+    if (state.level === 1) addObject('building');
+    if (state.level === 2) addObject('skyscraper');
+  }
 
-// ===== HUD & Progress =====
-function updateProgress() {
-  energyVal && (energyVal.textContent = state.energy);
+  function refreshPowersList() {
+    [...powersList.children].forEach(row => {
+      const id = Number(row.dataset.id);
+      if (state.unlockedPowerIds.includes(id)) {
+        row.classList.add('unlocked');
+      } else {
+        row.classList.remove('unlocked');
+      }
+    });
+  }
 
-  const nextPower = CONFIG.levels[state.levelIndex];
-  if (nextPower) {
-    nextVal && (nextVal.textContent = nextPower.threshold);
-    const progress = Math.min(state.energy / nextPower.threshold, 1);
-    if (barFill) barFill.style.width = (progress * 100) + '%';
+  // ===== Effects =====
+  function showBanner(text) {
+    banner.textContent = text;
+    banner.classList.remove('show');
+    void banner.offsetWidth;
+    banner.classList.add('show');
+  }
 
-    if (state.energy >= nextPower.threshold) {
-      // Level up
-      state.levelIndex++;
-      levelVal && (levelVal.textContent = state.levelIndex);
-      showBanner(`Unlocked: ${nextPower.name}`);
+  function impactPunch() {
+    pow.textContent = 'POW!';
+    pow.classList.remove('show');
+    void pow.offsetWidth;
+    pow.classList.add('show');
+  }
+
+  function impactSuperStrength() {
+    impactPunch();
+    clickBtn.parentElement.classList.remove('shake');
+    void clickBtn.parentElement.offsetWidth;
+    clickBtn.parentElement.classList.add('shake');
+  }
+
+  function impactSupernova() {
+    flash.classList.remove('show');
+    void flash.offsetWidth;
+    flash.classList.add('show');
+    showBanner('SUPER★NOVA');
+  }
+
+  function meteorRain() {
+    for (let i = 0; i < 6; i++) {
+      const meteor = document.createElement('div');
+      meteor.className = 'meteor';
+      meteor.style.left = Math.random() * window.innerWidth + 'px';
+      meteor.style.animationDelay = (i * 0.2) + 's';
+      meteor.style.zIndex = 9999;
+      document.body.appendChild(meteor);
+      setTimeout(() => meteor.remove(), 2000);
     }
   }
-}
-function updateHUD() {
-  energyVal && (energyVal.textContent = state.energy);
-  levelVal && (levelVal.textContent = state.levelIndex);
-}
 
-// ===== Effects helpers =====
-function showBanner(text) {
-  if (!banner) return;
-  banner.textContent = text;
-  banner.classList.add('show');
-  setTimeout(() => banner.classList.remove('show'), 1200);
-}
-function pulsePow(text) {
-  if (!pow) return;
-  pow.textContent = text;
-  pow.classList.remove('show');
-  void pow.offsetWidth;
-  pow.classList.add('show');
-  setTimeout(() => pow.classList.remove('show'), 300);
-}
-function impactPunch() { pulsePow("POW!"); }
-function impactSuperStrength() { pulsePow("BOOM!"); }
-function impactSupernova() { flashScreen(500); }
-
-function flashScreen(ms = 500) {
-  if (!flash) return;
-  flash.classList.add('show');
-  setTimeout(() => flash.classList.remove('show'), ms);
-}
-
-// ===== Object system =====
-function addObject(type) {
-  const obj = document.createElement('div');
-  obj.className = `obj ${type}`;
-  obj.dataset.type = type;
-  obj.dataset.hp = type === 'wall' ? CONFIG.wallHP : CONFIG.buildingHP;
-  obj.textContent = type.toUpperCase();
-  obj.style.display = 'inline-block';
-  obj.style.margin = '6px';
-  obj.style.padding = '10px 14px';
-  obj.style.borderRadius = '6px';
-  obj.style.transition = 'opacity 0.4s, transform 0.4s';
-  obj.style.background = type === 'wall' ? '#7a7a7a' : '#444';
-  obj.style.color = '#fff';
-  objectsEl.appendChild(obj);
-}
-function damageClosest(type, dmg) {
-  const obj = objectsEl.querySelector(`.obj.${type}`);
-  if (!obj) return;
-  let hp = parseInt(obj.dataset.hp, 10) - dmg;
-  const maxHP = type === 'wall' ? CONFIG.wallHP : CONFIG.buildingHP;
-
-  if (hp <= 0) {
-    obj.style.transform = 'scale(0.9)';
-    obj.style.opacity = '0';
-    setTimeout(() => obj.remove(), 400);
-    // respawn same type to keep the scene alive
-    setTimeout(() => addObject(type), 300);
-  } else {
-    obj.dataset.hp = hp;
-    obj.style.opacity = (0.25 + 0.75 * (hp / maxHP)).toFixed(2);
-    obj.style.transform = 'scale(0.98)';
-    setTimeout(() => obj.style.transform = 'scale(1)', 120);
-  }
-}
-function destroyRandomBig() {
-  const objs = objectsEl.querySelectorAll('.obj.building');
-  if (objs.length === 0) return;
-  const target = objs[Math.floor(Math.random() * objs.length)];
-  target.style.transform = 'scale(0.9)';
-  target.style.opacity = '0';
-  setTimeout(() => target.remove(), 400);
-  setTimeout(() => addObject('building'), 300);
-}
-function wipeObjects() {
-  const objs = [...objectsEl.querySelectorAll('.obj')];
-  objs.forEach(o => {
-    o.style.opacity = '0';
-    o.style.transform = 'scale(0.9)';
-    setTimeout(() => o.remove(), 420);
-  });
-}
-
-// ===== Meteor rain =====
-function meteorRain() {
-  if (!objectsEl) return;
-  const container = document.createElement('div');
-  container.className = 'meteor-container';
-  container.style.position = 'fixed';
-  container.style.pointerEvents = 'none';
-  container.style.top = '0';
-  container.style.left = '0';
-  container.style.width = '100vw';
-  container.style.height = '100vh';
-  container.style.zIndex = '999';
-  document.body.appendChild(container);
-
-  for (let i = 0; i < CONFIG.meteorCount; i++) {
-    const m = document.createElement('div');
-    m.className = 'meteor';
-    m.style.position = 'absolute';
-    m.style.width = '6px';
-    m.style.height = '18px';
-    m.style.background = 'orange';
-    m.style.boxShadow = '0 0 10px 2px #ffae';
-    m.style.left = Math.random() * window.innerWidth + 'px';
-    m.style.top = (-20 - Math.random() * 50) + 'px';
-    m.style.transform = 'rotate(25deg)';
-    container.appendChild(m);
-
-    const duration = 700 + Math.random() * 600;
-    setTimeout(() => {
-      m.style.transition = `transform ${duration}ms ease, top ${duration}ms ease, opacity 200ms`;
-      m.style.top = window.innerHeight + 'px';
-      m.style.transform = 'translateX(-120px) rotate(25deg)';
-      setTimeout(() => { m.style.opacity = '0'; }, duration - 100);
-    }, 20);
+  function blackHole() {
+    const hole = document.createElement('div');
+    hole.className = 'blackhole';
+    hole.style.zIndex = 9999;
+    document.body.appendChild(hole);
+    setTimeout(() => hole.remove(), 2000);
   }
 
-  sfxMeteor && sfxMeteor.play?.();
+  // ===== Scene Damage / Destruction =====
+  function damageClosest(type, dmg = 1) {
+    const candidates = [...objectsEl.querySelectorAll(`.obj.${type}:not(.destroy)`)];
+    if (!candidates.length) return;
+    const target = candidates[0];
+    const hp = Number(target.dataset.hp) - dmg;
+    target.dataset.hp = hp;
+    target.classList.add('hit');
+    if (hp <= 0) {
+      target.classList.add('destroy');
+      setTimeout(() => target.remove(), 560);
+    }
+  }
 
-  setTimeout(() => {
-    container.remove();
-  }, 1600);
-}
+  function destroyRandomBig() {
+    const bigs = [...objectsEl.querySelectorAll('.obj.skyscraper, .obj.building')].filter(el => !el.classList.contains('destroy'));
+    if (!bigs.length) return;
+    const target = bigs[Math.floor(Math.random() * bigs.length)];
+    target.classList.add('destroy');
+    setTimeout(() => target.remove(), 560);
+  }
 
-// ===== Black hole =====
-function blackHole() {
-  if (state.blackHoleActive) return;
-  state.blackHoleActive = true;
-
-  const hole = document.createElement('div');
-  hole.className = 'blackhole';
-  hole.style.position = 'fixed';
-  hole.style.left = '50%';
-  hole.style.top = '50%';
-  hole.style.transform = 'translate(-50%, -50%)';
-  hole.style.width = '40px';
-  hole.style.height = '40px';
-  hole.style.borderRadius = '50%';
-  hole.style.background = 'radial-gradient(#000, #222)';
-  hole.style.boxShadow = '0 0 20px 10px #000';
-  hole.style.zIndex = '998';
-  document.body.appendChild(hole);
-
-  sfxBlackhole && sfxBlackhole.play?.();
-
-  // Grow and then fade
-  setTimeout(() => {
-    hole.style.transition = 'all 600ms ease';
-    hole.style.width = '180px';
-    hole.style.height = '180px';
-  }, 30);
-
-  setTimeout(() => {
-    hole.style.opacity = '0';
-    setTimeout(() => {
-      hole.remove();
-      state.blackHoleActive = false;
-    }, 300);
-  }, 1200);
-}
-function suckAllObjects() {
-  const objs = [...objectsEl.querySelectorAll('.obj')];
-  objs.forEach(o => {
-    const rect = o.getBoundingClientRect();
-    const cx = window.innerWidth / 2;
-    const cy = window.innerHeight / 2;
-    const ox = rect.left + rect.width / 2;
-    const oy = rect.top + rect.height / 2;
-    const dx = (cx - ox) * 0.08;
-    const dy = (cy - oy) * 0.08;
-
-    o.style.transition = 'transform 600ms ease, opacity 600ms ease';
-    o.style.transform = `translate(${dx}px, ${dy}px) scale(0.8)`;
-    o.style.opacity = '0.2';
-    setTimeout(() => o.remove(), 600);
-  });
-
-  // Re-seed scene so it doesn't go empty
-  setTimeout(() => {
-    for (let i = 0; i < 3; i++) addObject('wall');
-    for (let i = 0; i < 2; i++) addObject('building');
-  }, 700);
-}
-
-// ===== Boundless Chaos =====
-function triggerBoundlessChaos() {
-  document.body.style.filter = "invert(1) hue-rotate(180deg)";
-  document.body.classList.add('shake');
-  setTimeout(() => document.body.classList.remove('shake'), 5000);
-
-  const glitch = document.createElement('div');
-  glitch.id = 'glitch';
-  glitch.innerText = "REALITY BROKEN";
-  glitch.style.position = 'fixed';
-  glitch.style.fontSize = '3rem';
-  glitch.style.fontWeight = 'bold';
-  glitch.style.color = 'red';
-  glitch.style.zIndex = '9999';
-  glitch.style.pointerEvents = 'none';
-  document.body.appendChild(glitch);
-
-  const mover = setInterval(() => {
-    glitch.style.left = Math.random() * window.innerWidth + 'px';
-    glitch.style.top = Math.random() * window.innerHeight + 'px';
-  }, 200);
-
-  // Restore after chaos
-  setTimeout(() => {
-    clearInterval(mover);
-    glitch.remove();
-    document.body.style.filter = 'none';
-  }, 6000);
-}
-
-// ===== Ambient growth (simple placeholder) =====
-function autoSceneGrowth() {
-  // Occasionally spawn an extra wall/building to keep scene lively
-  if (Math.random() < 0.08) addObject('wall');
-  if (Math.random() < 0.04) addObject('building');
-}
+  function autoSceneGrowth() {
+    const countWalls = objectsEl.querySelectorAll('.obj.wall').length;
+    const countBuildings = objectsEl.querySelectorAll('.obj.building').length;
+    const countSkyscrapers = objectsEl.querySelectorAll('.obj.skyscraper').length;
+    if (countWalls < 2) addObject('wall');
+    if (state.level >= 1 && countBuildings < 2) addObject('building');
+    if (state.level >= 2 && countSkyscrapers < 1) addObject('skyscraper');
+  }
 </script>
 </body>
 </html>
